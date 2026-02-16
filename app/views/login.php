@@ -1,4 +1,4 @@
-<?php require 'components/header.php';?>
+<?php require 'components/head.php';?>
 
 <div class="flex min-h-[80vh] items-center justify-center px-6 py-12">
     <form action="<?php echo URLROOT;?>/login/auth" method="post"
@@ -9,9 +9,9 @@
             <p class="mt-2 text-sm text-zinc-400">Please enter your details to login</p>
         </div>
 
-        <?php if(!empty($data['error'])): ?>
+        <?php if($data['status'] === 'failed'): ?>
             <div class="mb-6 rounded-lg border border-red-500/50 bg-red-500/10 p-3 text-sm text-red-400">
-                <?php echo htmlspecialchars($data['error'])?>
+                <?php echo htmlspecialchars($data['response'])?>
             </div>
         <?php endif; ?>
 
@@ -44,3 +44,4 @@
         </p>
     </form>
 </div>
+<?php //dumpNDie($data); ?>

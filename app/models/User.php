@@ -7,12 +7,12 @@ class User{
         $this->db = new Database();
     }
     public function getUsers(){
-        $this->db->query("SELECT id, username, email, password_hash, role, is_active, created_at FROM users");
+        $this->db->query("CALL getAllUsers()");
         return $this->db->resultSet();
     }
     public function findUserByEmail($email) {
-        $this->db->query("SELECT * FROM users WHERE email = :email");
-        $this->db->bind(':email', $email);
+        $this->db->query("CALL getUserRowByUsernameOrEmail(:login)");
+        $this->db->bind(':login', $email);
         return $this->db->single();
     }
 }

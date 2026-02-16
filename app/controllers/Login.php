@@ -30,7 +30,7 @@ class Login extends Controller {
 
             if ($user) {
                 if (password_verify($password, $user->password_hash)) {
-                    $_SESSION['id'] = $user->id;
+                    $_SESSION['User_id'] = $user->User_id;
                     $_SESSION['username'] = $user->username;
                     $_SESSION['role'] = $user->role; // Store the role in the session here
                     redirect('home');

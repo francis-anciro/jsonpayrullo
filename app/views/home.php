@@ -1,5 +1,5 @@
+<?php require 'components/head.php';?>
 <?php require 'components/header.php';?>
-<?php require 'components/nav.php';?>
 
     <main class="min-h-[calc(100vh-160px)] bg-zinc-950 px-6 py-8 md:px-12 flex items-center justify-center">
         <div class="mx-auto max-w-4xl w-full bg-zinc-900/50 border border-zinc-800 rounded-3xl p-8 md:p-12 shadow-2xl backdrop-blur-sm">

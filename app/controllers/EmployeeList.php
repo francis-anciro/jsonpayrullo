@@ -9,101 +9,57 @@ class EmployeeList extends Controller {
     }
     public function index(){
         $users = $this->userModel->getUsers();
-
+        foreach ($users as $user) {
+            $user->department_name = $this->getDeptName($user->Department_ID);
+        }
         $data = [
             'title' => 'employeeList',
             'users' => $users,
-            'role'  => $_SESSION['role'] ?? 'employee',
+            'role'  => $_SESSION['role'],
         ];
         $this->view('employeeList', $data);
     }
+    public function add() {
+        $data = [
+            'title' => 'Register New Employee'
+        ];
 
-    public function addUser(){
+        $this->view('adminViews/addUser', $data);
+    }
+    public function getDeptName($deptId): string{
+        switch ($deptId){
+            case '1':
+                $deptName =  "Creative & Production";
+                break;
+            case '2':
+                $deptName = "Content & Social Media";
+                break;
+            case '3':
+                $deptName = "Accounts & Client Services";
+                break;
+            case '4':
+                $deptName = "Operations & Technology";
+                break;
+            default:
+                $deptName = "ERROR";
+                break;
+        }
+        return $deptName;
+    }
+    public function delete($code) {
+        // Only allow deletion via POST for security
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $deptId = $_POST['Department_id'];
-            $deptCode = "";
-            $year = date('Y');
 
-            $employeeCountInDept = $this->userModel->getUserCountByDept($deptId);
-            $employeeCount = (1000 + $employeeCountInDept) + 1;
-
-
-            switch ($deptId){
-                case '1':
-                    $deptCode = "CREAPRO";
-                    break;
-                case '2':
-                    $deptCode = "CONTSOC";
-                    break;
-                case '3':
-                    $deptCode = "ACCCLIE";
-                    break;
-                case '4':
-                    $deptCode = "OPETECH";
-                    break;
-                default:
-                    $deptCode = "NA";
-                    break;
+            // Call the model method we created earlier
+            if ($this->userModel->deleteUserByCode($code)) {
+                // Success: Redirect back to the list
+                redirect('EmployeeList');
+            } else {
+                die('Error: Could not delete the employee.');
             }
-            $employeeCode = "{$deptCode}-{$year}-{$employeeCount}";
-
-            $data = [
-                'username' => trim($_POST['username']),
-                'email' => trim($_POST['email']),
-                'password' => trim($_POST['password']),
-                'role' => $_POST['role'],
-                'is_active' => isset($_POST['is_active']) ? 1 : 0
-            ];
-            if ($this->userModel->insertUser($data)) {
-                redirect('employeeList');
-            }else{
-                die('Something went wrong');
-            }
+        } else {
+            // If someone tries to access via URL (GET), send them back
+            redirect('EmployeeList');
         }
     }
-
-//    public function deleteUser($User_id) {
-//        // Basic security check: only admins should delete
-//        if ($_SESSION['role'] !== 'admin') {
-//            redirect('employeeList');
-//            exit();
-//        }
-//
-//        if ($this->userModel->deleteUser($User_id)) {
-//            redirect('employeeList');
-//        } else {
-//            die('Something went wrong during deletion.');
-//        }
-//    }
-//    public function editUser($User_id) {
-//        $user = $this->userModel->getUserById($User_id);
-//
-//        if (!$user) {
-//            redirect('employeeList');
-//        }
-//        $data = [
-//            'title' => 'Edit User',
-//            'user'  => $user,
-//            'role'  => $_SESSION['role']
-//        ];
-//        $this->view('users/updateUser', $data);
-//    }
-//    public function updateUser($User_id)
-//    {
-//        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-//            $data = [
-//                'User_id' => $User_id,
-//                'username' => trim($_POST['username']),
-//                'email' => trim($_POST['email']),
-//                'role' => $_POST['role'],
-//                'is_active' => isset($_POST['is_active']) ? 1 : 0
-//            ];
-//
-//            if ($this->userModel->update($data)) {
-//                redirect('employeeList');
-//            } else {
-//                die('Something went wrong');
-//            }
-//        }
-//    }
 }

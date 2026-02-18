@@ -48,5 +48,4 @@
             </div>
         </div>
     </main>
-
 <?php require 'components/footer.php';?>

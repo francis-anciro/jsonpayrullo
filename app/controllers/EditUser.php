@@ -29,15 +29,25 @@ class EditUser extends Controller {
                 'phone'         => trim($_POST['phone']),
                 'address'       => trim($_POST['address']),
                 'department_id' => $_POST['Department_id'],
-                'position_id'   => $_POST['position_id'],
+                'position_id'   => $_POST['position_id'], // This key name must match line 113 in User.php
                 'basic_salary'  => $_POST['basic_salary'],
                 'shift_id'      => $_POST['shift_id']
             ];
 
-            if ($this->userModel->updateFullEmployee($data)) {
+            try {
+                if ($this->userModel->updateFullEmployee($data)) {
+                    $_SESSION['flash_success'] = "Employee updated successfully.";
+                    redirect('EmployeeList');
+                }
+            } catch (PDOException $e) {
+                // 45000 is the custom error code from your SIGNAL in the Stored Procedure
+                if ($e->getCode() == '45000') {
+                    $_SESSION['flash_error'] = "This department already has a manager assigned.";
+                } else {
+                    // Fallback for other errors (like the argument count error)
+                    $_SESSION['flash_error'] = "An unexpected database error occurred.";
+                }
                 redirect('EmployeeList');
-            } else {
-                die('Update failed.');
             }
         }
     }

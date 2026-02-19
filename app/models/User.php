@@ -99,6 +99,7 @@ class User{
     }
 
     public function updateFullEmployee($data) {
+        // 11 placeholders to match your SQL procedure
         $this->db->query("CALL sp_UpdateEmployee(:code, :email, :role, :fname, :lname, :phone, :address, :dept, :pos, :salary, :shift)");
 
         $this->db->bind(':code', $data['employee_code']);
@@ -109,7 +110,7 @@ class User{
         $this->db->bind(':phone', $data['phone']);
         $this->db->bind(':address', $data['address']);
         $this->db->bind(':dept', $data['department_id']);
-        $this->db->bind(':pos', $data['position_id']);
+        $this->db->bind(':pos', $data['position_id']); // This was likely the missing 11th arg
         $this->db->bind(':salary', $data['basic_salary']);
         $this->db->bind(':shift', $data['shift_id']);
 

@@ -3,6 +3,26 @@ require 'components/head.php';
 require 'components/header.php';
 require 'components/navControl.php';
 ?>
+<?php
+// Check both data and session for errors
+$errorMessage = $data['error'] ?? $_SESSION['flash_error'] ?? null;
+if($errorMessage):
+    ?>
+    <div id="toast-error"
+         class="fixed top-0 left-1/2 z-[100] w-full max-w-md -translate-x-1/2 px-4 mt-6 animate-[bounce-in_0.5s_ease-out_forwards]">
+        <div class="flex items-center gap-3 rounded-xl border border-red-500/50 bg-zinc-900 p-4 shadow-2xl backdrop-blur-md">
+            <div class="flex-shrink-0 text-red-500">
+                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <p class="text-sm font-bold uppercase tracking-tight text-white italic">
+                <?php echo htmlspecialchars($errorMessage); ?>
+            </p>
+        </div>
+    </div>
+    <?php unset($_SESSION['flash_error']); ?>
+<?php endif; ?>
 
     <main class="min-h-[calc(100vh-160px)] bg-zinc-950 px-4 py-8 md:px-12">
         <div class="mx-auto max-w-5xl">
@@ -54,8 +74,6 @@ require 'components/navControl.php';
                         </div>
 
                         <div class="relative z-20 flex items-center justify-end gap-6 w-1/3">
-
-
                             <div class="flex items-center">
                                 <?php echo userBadgeCheck($user->role); ?>
                             </div>
@@ -65,14 +83,9 @@ require 'components/navControl.php';
                                 Delete
                             </button>
                             <a href="<?php echo URLROOT;?>/EditUser/index/<?php echo $user->employee_code; ?>"
-                                    class="text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:text-red-500 transition">
+                               class="text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:text-indigo-400 transition">
                                 Edit
                             </a>
-<!--                            <div class="text-zinc-600 transition group-hover:text-white">-->
-<!--                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">-->
-<!--                                    <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />-->
-<!--                                </svg>-->
-<!--                            </div>-->
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -105,6 +118,15 @@ require 'components/navControl.php';
     </div>
 
     <script>
+        // Toast handling logic
+        setTimeout(() => {
+            const toast = document.getElementById('toast-error');
+            if (toast) {
+                toast.classList.add('opacity-0', '-translate-y-4', 'transition-all', 'duration-500');
+                setTimeout(() => toast.remove(), 500);
+            }
+        }, 5000);
+
         function openDeleteModal(code, url) {
             document.getElementById('modal-employee-code').innerText = code;
             document.getElementById('modal-delete-form').action = url;

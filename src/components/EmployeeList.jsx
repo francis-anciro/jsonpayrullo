@@ -231,8 +231,8 @@ const EmployeeList = () => {
       ></div>
 
       {/* BACKGROUND LIGHTS */}
-      <div className={`fixed top-0 left-0 h-full w-1/4 bg-gradient-to-r from-emerald-500/10 to-transparent blur-3xl pointer-events-none z-0 transition-opacity duration-1000 ${isMounted ? 'opacity-100' : 'opacity-0'}`}></div>
-      <div className={`fixed top-0 right-0 h-full w-1/4 bg-gradient-to-l from-emerald-500/10 to-transparent blur-3xl pointer-events-none z-0 transition-opacity duration-1000 ${isMounted ? 'opacity-100' : 'opacity-0'}`}></div>
+      <div className={`fixed top-0 left-0 h-full w-1/4 bg-gradient-to-r from-emerald-500/20 to-transparent blur-3xl pointer-events-none z-0 transition-opacity duration-1000 ${isMounted ? 'opacity-100' : 'opacity-0'}`}></div>
+      <div className={`fixed top-0 right-0 h-full w-1/4 bg-gradient-to-l from-emerald-500/20 to-transparent blur-3xl pointer-events-none z-0 transition-opacity duration-1000 ${isMounted ? 'opacity-100' : 'opacity-0'}`}></div>
 
       <div className={`relative z-10 w-full max-w-5xl flex flex-col gap-6 transition-all duration-700 ease-out transform ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
         

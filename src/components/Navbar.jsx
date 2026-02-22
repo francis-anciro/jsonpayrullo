@@ -13,7 +13,6 @@ const Navbar = () => {
     position: "HR Manager"
   };
 
-  // Helper to get initials (e.g., "John Doe" -> "JD")
   const getInitials = (name) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
@@ -25,6 +24,14 @@ const Navbar = () => {
     { name: 'Analytics', icon: BarChart3, path: '/analytics' },
   ];
 
+  // Map theme colors to each tab name
+  const activeTheme = {
+    'Home': { text: 'text-blue-400', border: 'border-blue-500/60', bg: 'bg-blue-500', glow: 'shadow-[0_0_10px_rgba(59,130,246,0.8)]', tabGlow: 'shadow-[0_0_25px_rgba(59,130,246,0.2)]' },
+    'Employee List': { text: 'text-emerald-400', border: 'border-emerald-500/60', bg: 'bg-emerald-500', glow: 'shadow-[0_0_10px_rgba(16,185,129,0.8)]', tabGlow: 'shadow-[0_0_25px_rgba(16,185,129,0.2)]' },
+    'Payroll': { text: 'text-violet-400', border: 'border-violet-500/60', bg: 'bg-violet-500', glow: 'shadow-[0_0_10px_rgba(139,92,246,0.8)]', tabGlow: 'shadow-[0_0_25px_rgba(139,92,246,0.2)]' },
+    'Analytics': { text: 'text-amber-400', border: 'border-amber-500/60', bg: 'bg-amber-500', glow: 'shadow-[0_0_10px_rgba(245,158,11,0.8)]', tabGlow: 'shadow-[0_0_25px_rgba(245,158,11,0.2)]' },
+  };
+
   const isActive = (path) => {
     if (path === '/' && currentPath !== '/') return false;
     return currentPath.startsWith(path);
@@ -32,47 +39,51 @@ const Navbar = () => {
   
   const handleLogout = () => {
     console.log("Logout triggered! Redirecting to login...");
-    // TODO: Add your backend fetch to destroy PHP session here
-    
-    // Redirects user back to the login page
     navigate('/login'); 
   };
 
   return (
-    <nav className="w-full border-b border-zinc-800/80 bg-[#0a0a0a]/80 backdrop-blur-xl text-white sticky top-0 z-50 transition-all duration-300 shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
-      {/* Added 'relative' here so the tabs can be perfectly centered */}
+    <nav className="w-full text-white sticky top-0 z-50 transition-all duration-300">
       <div className="flex h-20 w-full items-center justify-between px-6 md:px-10 py-4 relative">
 
         {/* --- LOGO SECTION --- */}
         <div className="flex items-center gap-3 group cursor-pointer z-10" onClick={() => navigate('/')}>
-          <div className="flex items-center justify-center rounded-xl bg-blue-600/10 p-2.5 border border-blue-500/20 group-hover:bg-blue-600/20 group-hover:border-blue-500/40 transition-all duration-300 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.3)]">
-            <Hexagon className="h-6 w-6 text-blue-500 group-hover:scale-110 transition-transform duration-300" />
+          <div className="flex items-center justify-center rounded-xl bg-blue-600/20 p-2.5 border border-blue-500/40 group-hover:bg-blue-600/30 group-hover:border-blue-500/60 transition-all duration-300 shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+            <Hexagon className="h-7 w-7 text-blue-500 group-hover:scale-110 transition-transform duration-300" />
           </div>
-          <span className="text-xl font-black tracking-widest uppercase bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent drop-shadow-md">
+          <span className="text-2xl font-black tracking-widest uppercase bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
             PAYRULLO
           </span>
         </div>
 
-        {/* --- NAVIGATION LINKS (The "Wheel / Pill Dock") --- */}
-        {/* Absolute positioning perfectly centers the dock regardless of logo/profile width */}
-        <div className="hidden md:flex items-center gap-1 bg-[#000000]/60 border border-zinc-800/80 p-1.5 rounded-full shadow-inner absolute left-1/2 -translate-x-1/2 z-0">
+        {/* --- NAVIGATION LINKS --- */}
+        <div className="hidden md:flex items-center gap-5 absolute left-1/2 -translate-x-1/2 z-0">
           {navItems.map((item) => {
             const Icon = item.icon; 
             const active = isActive(item.path);
+            const theme = activeTheme[item.name];
             
             return (
               <Link
                 key={item.name}
                 to={item.path}
-                // Changed rounded-xl to rounded-full to complete the "wheel/pill" look
-                className={`group flex items-center gap-2.5 rounded-full px-5 py-2.5 text-xs font-bold tracking-widest uppercase transition-all duration-300 ${
-                  active
-                    ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)]'
-                    : 'text-zinc-400 hover:bg-zinc-800/60 hover:text-white border border-transparent'
+                /* Dynamic Border and Shadow based on the corresponding tab theme */
+                className={`group relative flex items-center gap-3 px-5 py-2.5 rounded-2xl border transition-all duration-300 bg-zinc-900 shadow-xl active:scale-95 ${
+                  active 
+                    ? `${theme.border} text-white ${theme.tabGlow}` 
+                    : 'border-zinc-800 text-white hover:border-zinc-600'
                 }`}
               >
-                <Icon className={`h-4 w-4 ${active ? '' : 'group-hover:-translate-y-0.5'} transition-transform duration-300`} />
-                <span>{item.name}</span>
+                {/* Dynamic Icon Color */}
+                <Icon className={`h-5 w-5 ${active ? `${theme.text} animate-pulse` : 'text-zinc-400 group-hover:text-white'} transition-colors duration-300`} />
+                <span className="text-sm font-black tracking-[0.1em] uppercase">
+                  {item.name}
+                </span>
+                
+                {/* Visual indicator dash with entrance animation and Dynamic Color/Glow */}
+                <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 h-1 rounded-full transition-all duration-500 ease-out ${
+                    active ? `w-1/3 opacity-100 ${theme.bg} ${theme.glow}` : 'w-0 opacity-0'
+                }`} />
               </Link>
             );
           })}
@@ -81,14 +92,13 @@ const Navbar = () => {
         {/* --- USER INFO & LOGOUT SECTION --- */}
         <div className="flex items-center gap-4 z-10">
           
-          {/* User Profile Pill */}
-          <div className="hidden sm:flex items-center gap-3 bg-[#121212] border border-zinc-800/80 rounded-full py-1.5 pl-1.5 pr-5 shadow-inner">
-            <div className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-black text-xs tracking-widest shadow-[0_0_10px_rgba(59,130,246,0.2)]">
+          <div className="hidden sm:flex items-center gap-3 py-2 px-4 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-xl hover:border-zinc-700 transition-colors cursor-default">
+            <div className="w-9 h-9 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-black text-xs tracking-widest shadow-inner">
               {getInitials(user.name)}
             </div>
             <div className="flex flex-col">
-              <span className="text-xs font-bold text-white leading-tight">{user.name}</span>
-              <span className="text-[9px] font-bold uppercase tracking-widest text-blue-400 leading-tight">
+              <span className="text-xs font-black text-white leading-tight uppercase tracking-wider">{user.name}</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-blue-400 leading-tight">
                 {user.position}
               </span>
             </div>
@@ -96,13 +106,12 @@ const Navbar = () => {
           
           <div className="h-6 w-px bg-zinc-800 hidden sm:block"></div>
           
-          {/* Logout Button */}
           <button 
             onClick={handleLogout}
-            className="group rounded-xl p-2.5 bg-zinc-900/50 border border-zinc-800/50 text-zinc-400 transition-all duration-300 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 hover:shadow-[0_0_15px_rgba(239,68,68,0.2)]"
+            className="group p-3 rounded-2xl bg-zinc-900 border border-zinc-800 text-white transition-all duration-300 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/50 hover:shadow-[0_0_15px_rgba(239,68,68,0.1)] active:scale-90 shadow-xl"
             title="Log out"
           >
-            <LogOut className="h-5 w-5 group-hover:translate-x-0.5 transition-transform duration-300" />
+            <LogOut className="h-6 w-6 group-hover:translate-x-0.5 transition-transform duration-300" />
           </button>
         </div>
 

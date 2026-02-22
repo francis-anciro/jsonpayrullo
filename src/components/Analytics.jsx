@@ -81,8 +81,8 @@ const Analytics = () => {
       ></div>
       
       {/* Ambient Lights */}
-      <div className={`fixed top-0 left-0 h-full w-1/4 bg-gradient-to-r from-amber-500/10 to-transparent blur-3xl pointer-events-none z-0 transition-all duration-1000 ${isMounted ? 'opacity-100' : 'opacity-0'}`}></div>
-      <div className={`fixed top-0 right-0 h-full w-1/4 bg-gradient-to-l from-amber-500/10 to-transparent blur-3xl pointer-events-none z-0 transition-all duration-1000 ${isMounted ? 'opacity-100' : 'opacity-0'}`}></div>
+      <div className={`fixed top-0 left-0 h-full w-1/4 bg-gradient-to-r from-amber-500/20 to-transparent blur-3xl pointer-events-none z-0 transition-all duration-1000 ${isMounted ? 'opacity-100' : 'opacity-0'}`}></div>
+      <div className={`fixed top-0 right-0 h-full w-1/4 bg-gradient-to-l from-amber-500/20 to-transparent blur-3xl pointer-events-none z-0 transition-all duration-1000 ${isMounted ? 'opacity-100' : 'opacity-0'}`}></div>
 
       <div className={`relative z-10 w-full max-w-6xl flex flex-col gap-8 transition-all duration-700 ease-out transform ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
         
@@ -121,10 +121,8 @@ const Analytics = () => {
           ))}
         </div>
 
-        {/* --- UPGRADED MAIN CHARTS WRAPPER --- */}
         <div className="bg-gradient-to-b from-[#121212]/90 to-[#0a0a0a]/90 backdrop-blur-xl border border-zinc-800/80 shadow-[0_16px_40px_0_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.05)] rounded-[2.5rem] p-6 md:p-8 flex flex-col gap-6 relative overflow-hidden">
           
-          {/* Subtle top edge glow for depth */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-amber-500/20 to-transparent"></div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full">
@@ -132,7 +130,6 @@ const Analytics = () => {
             {/* Chart 1: Status Distribution (Donut Chart) */}
             <div className="flex flex-col min-h-[400px]">
               
-              {/* Recessed Pill Header */}
               <div className="flex items-center gap-3 bg-zinc-900/40 border border-zinc-800/80 shadow-inner rounded-2xl px-5 py-4 mb-6 w-full">
                 <Users className="text-amber-500" size={18} />
                 <h2 className="text-xs font-black text-zinc-300 uppercase tracking-[0.15em]">
@@ -178,7 +175,6 @@ const Analytics = () => {
             {/* Chart 2: Headcount by Department (Bar Chart) */}
             <div className="flex flex-col min-h-[400px]">
               
-              {/* Recessed Pill Header */}
               <div className="flex items-center gap-3 bg-zinc-900/40 border border-zinc-800/80 shadow-inner rounded-2xl px-5 py-4 mb-6 w-full">
                 <Building2 className="text-amber-500" size={18} />
                 <h2 className="text-xs font-black text-zinc-300 uppercase tracking-[0.15em]">
@@ -194,8 +190,7 @@ const Analytics = () => {
                 <div className="flex-1 w-full h-full min-h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={deptData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      
-                      {/* SVG Gradient Definition for the Bars */}
+
                       <defs>
                         <linearGradient id="colorAmber" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#fbbf24" stopOpacity={1}/>

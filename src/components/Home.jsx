@@ -134,7 +134,6 @@ const Home = () => {
           {/* RIGHT COLUMN: Info & Recent Attendance */}
           <div className="flex flex-col gap-5 lg:col-span-2">
             
-            {/* Info Card - Reduced Padding and Font Sizes */}
             <div className="bg-gradient-to-b from-[#121212]/90 to-[#0a0a0a]/90 backdrop-blur-xl border border-zinc-800/80 shadow-[0_16px_40px_0_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.05)] rounded-[2rem] p-6 md:p-8 flex flex-col justify-center relative overflow-hidden">
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-blue-500/20 to-transparent"></div>
               
@@ -153,7 +152,6 @@ const Home = () => {
                     </h2>
                   </div>
                   
-                  {/* Glowing Status Badge */}
                   <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border border-zinc-800 bg-[#121212] shadow-inner`}>
                     {isTimedIn ? <CircleCheck className="text-green-500 animate-pulse" size={14} /> : <CircleMinus className="text-zinc-500" size={14} />}
                     <span className={`text-[10px] md:text-xs font-bold tracking-widest uppercase ${isTimedIn ? 'text-green-500' : 'text-zinc-500'}`}>
@@ -178,11 +176,9 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Recent Attendance Card - Reduced Padding and Row Heights */}
             <div className="bg-gradient-to-b from-[#121212]/90 to-[#0a0a0a]/90 backdrop-blur-xl border border-zinc-800/80 shadow-[0_16px_40px_0_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.05)] rounded-[2rem] p-5 md:p-6 flex flex-col flex-1 relative overflow-hidden">
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-blue-500/20 to-transparent"></div>
-              
-              {/* Recessed Pill Header */}
+   
               <div className="flex items-center gap-3 bg-zinc-900/40 border border-zinc-800/80 shadow-inner rounded-xl px-4 py-3 mb-4 w-full">
                 <CalendarClock className="text-blue-500" size={16} />
                 <h2 className="text-[11px] md:text-xs font-black text-zinc-300 uppercase tracking-[0.15em]">
@@ -193,7 +189,6 @@ const Home = () => {
               <div className="flex flex-col w-full">
                 <div className="w-full">
                   
-                  {/* Upgraded Table Header */}
                   <div className="grid grid-cols-4 gap-2 md:gap-4 px-3 py-3 mb-3 bg-zinc-900/40 border border-zinc-800/80 rounded-xl text-[10px] font-black text-zinc-300 uppercase tracking-[0.15em] shadow-inner items-center">
                     <span className="pl-2">Date</span>
                     <span>Time In</span>
@@ -201,12 +196,10 @@ const Home = () => {
                     <span>Status</span>
                   </div>
                   
-                  {/* Upgraded Table Rows ("FIRE" Design) - Tighter Gaps and Padding */}
                   <div className="flex flex-col gap-2.5">
                     {recentAttendance.map((record) => (
                       <div key={record.id} className="group grid grid-cols-4 gap-2 md:gap-4 items-center bg-[#121212] border border-zinc-800/80 hover:border-blue-500/50 hover:-translate-y-1 hover:shadow-[0_8px_30px_-4px_rgba(59,130,246,0.15)] transition-all duration-300 rounded-xl p-3 relative overflow-hidden text-xs">
                         
-                        {/* Subtle Left Border Glow */}
                         <div className={`absolute left-0 top-0 bottom-0 w-1 ${record.status === 'Present' ? 'bg-green-500' : record.status === 'Late' ? 'bg-yellow-500' : 'bg-red-500'} opacity-20 group-hover:opacity-100 transition-opacity`}></div>
 
                         <div className="flex items-center gap-2.5 pl-2">

@@ -28,7 +28,7 @@ class AddUser extends Controller {
                 'address'         => trim($_POST['address']),
                 'birthdate'       => $_POST['birthdate'],
                 'hire_date'       => $_POST['hire_date'],
-                'employment_type' => $_POST['employment_type'],
+                'employment_status' => $_POST['employment_status'],
                 'department_id'   => $_POST['Department_id'],
                 'position_id'     => $_POST['position_id'],
                 'basic_salary'    => $_POST['basic_salary'],

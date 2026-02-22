@@ -5,106 +5,163 @@ class Payrolls extends Controller {
         $this->payrollModel = $this->model('Payroll');
     }
 
-    // Page 1: List Periods
+    // PAGE 1: /Payrolls/index
     public function index() {
-        $data = ['periods' => $this->payrollModel->getPeriods(),
-        'role' => $_SESSION['role'],
-            'user_id' => $_SESSION['User_id'],
-        ];
-
-        $this->view('adminViews/payrollIndex', $data); // Page 1
-    }
-// Add these back to your Payroll class
-    public function getPeriods() {
-        $this->db->query("SELECT *, 
-        (SELECT COUNT(*) FROM payroll_runs WHERE PayrollPeriod_ID = p.PayrollPeriod_ID) as employee_count 
-        FROM payroll_periods p ORDER BY period_start DESC");
-        return $this->db->resultSet();
-    }
-
-    public function getPeriodById($id) {
-        $this->db->query("SELECT * FROM payroll_periods WHERE PayrollPeriod_ID = :id");
-        $this->db->bind(':id', $id);
-        return $this->db->single();
-    }
-
-    public function getRunsByPeriod($id) {
-        $this->db->query("SELECT pr.*, e.first_name, e.last_name, e.employee_code 
-                     FROM payroll_runs pr 
-                     JOIN employees e ON pr.Employee_ID = e.Employee_ID 
-                     WHERE pr.PayrollPeriod_ID = :id");
-        $this->db->bind(':id', $id);
-        return $this->db->resultSet();
-    }
-
-    public function createPeriod($data) {
-        $this->db->query("INSERT INTO payroll_periods (period_start, period_end, pay_date, status) 
-                  VALUES (:start, :end, :pay, 'open')");
-        $this->db->bind(':start', $data['period_start']);
-        $this->db->bind(':end', $data['period_end']);
-        $this->db->bind(':pay', $data['pay_date']);
-        return $this->db->execute();
-    }
-    public function details($id) {
         $data = [
-            'period' => $this->payrollModel->getPeriodById($id),
-            'runs' => $this->payrollModel->getRunsByPeriod($id),
-            'role' => $_SESSION['role'],
-            'user_id' => $_SESSION['User_id'],
-
+            'title'   => 'Payroll Periods',
+            'periods' => $this->payrollModel->getPeriods(),
+            'message' => $_SESSION['payroll_message'] ?? null,
+            'role' => $_SESSION['role']
         ];
-        $this->view('adminViews/payrollView', $data); // Page 2
+        unset($_SESSION['payroll_message']);
+        $this->view('adminViews/payrollIndex', $data);
     }
 
-    // Action for Page 2: Generate Button
-    public function generate($periodId) {
-        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $this->payrollModel->generate($periodId, $_SESSION['User_id']);
-            dumpNDie($data);
-            redirect('Payrolls/details/' . $periodId);
+    // PAGE 2: /Payrolls/details/2
+    public function details($period_id) {
+        $period = $this->payrollModel->getPeriodById($period_id);
+        if (!$period) {
+            redirect('Payrolls');
         }
-    }
 
-// Example method for the "Manage" modal submission
-    public function addAdjustment() {
-        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $runId = $_POST['PayrollRun_ID'];
-            $periodId = $_POST['period_id'];
+        $runs = $this->payrollModel->getRunsByPeriod($period_id);
 
-            if ($_POST['adjustment_type'] == 'allowance') {
-                $this->payrollModel->addAllowance($_POST);
-            } else {
-                $this->payrollModel->addDeduction($_POST);
-            }
-
-            // Sync totals so gross/net pay recalculate immediately
-            $this->payrollModel->syncTotals($runId);
-
-            redirect('Payrolls/details/' . $periodId);
+        // Attach allowances, deductions and payslip to each run
+        foreach ($runs as $run) {
+            $run->allowances = $this->payrollModel->getAllowancesByRun($run->PayrollRun_ID);
+            $run->deductions = $this->payrollModel->getDeductionsByRun($run->PayrollRun_ID);
+            $run->payslip    = $this->payrollModel->getPayslipByRun($run->PayrollRun_ID);
         }
+//        dumpNDie($runs);
+        $data = [
+            'title'   => 'Period Detail',
+            'period'  => $period,
+            'runs'    => $runs,
+            'message' => $_SESSION['payroll_message'] ?? null,
+            'role' => $_SESSION['role'],
+        ];
+        unset($_SESSION['payroll_message']);
+        $this->view('adminViews/payrollView', $data);
     }
 
-// Rename this to match the controller call
-    public function releasePeriod($id) {
-        $this->db->query("UPDATE payroll_periods SET status = 'released' WHERE PayrollPeriod_ID = :id");
-        $this->db->bind(':id', $id);
-        return $this->db->execute();
+    // PAGE 3: /Payrolls/payslip/6
+    public function payslip($run_id) {
+        $run        = $this->payrollModel->getRunById($run_id);
+        $allowances = $this->payrollModel->getAllowancesByRun($run_id);
+        $deductions = $this->payrollModel->getDeductionsByRun($run_id);
+
+        $data = [
+            'title'      => 'Payslip',
+            'run'        => $run,
+            'allowances' => $allowances,
+            'deductions' => $deductions
+        ];
+        $this->view('adminViews/payrollSlip', $data);
     }
+
+    // POST: /Payrolls/create
     public function create() {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            if ($this->payrollModel->createPeriod($_POST)) {
-                $_SESSION['payroll_message'] = ['type' => 'success', 'text' => 'New period created!'];
+            $existing = $this->payrollModel->getOpenPeriod();
+            if ($existing) {
+                $_SESSION['payroll_message'] = ['type' => 'error', 'text' => 'There is already an open payroll period.'];
             } else {
-                $_SESSION['payroll_message'] = ['type' => 'error', 'text' => 'Failed to create period.'];
+                $this->payrollModel->createPeriod([
+                    'period_start' => $_POST['period_start'],
+                    'period_end'   => $_POST['period_end'],
+                    'pay_date'     => $_POST['pay_date']
+                ]);
+                $_SESSION['payroll_message'] = ['type' => 'success', 'text' => 'Payroll period created successfully.'];
             }
-            redirect('payrolls');
+            redirect('Payrolls');
         }
     }
-    public function release($id) {
+
+    // POST: /Payrolls/generate/2
+    public function generate($period_id) {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            // Change this to match the model method name above
-            $this->payrollModel->releasePeriod($id);
-            redirect('Payrolls/index');
+            $period = $this->payrollModel->getPeriodById($period_id);
+            if (!$period || $period->status !== 'open') {
+                $_SESSION['payroll_message'] = ['type' => 'error', 'text' => 'Period is not open.'];
+            } else {
+                $this->payrollModel->generate($period_id, $_SESSION['Employee_ID']);
+                $_SESSION['payroll_message'] = ['type' => 'success', 'text' => 'Payroll generated successfully.'];
+            }
+            redirect('Payrolls/details/' . $period_id);
+        }
+    }
+
+    // POST: /Payrolls/addAllowance
+    public function addAllowance() {
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $this->payrollModel->addAllowance([
+                'run_id' => $_POST['run_id'],
+                'name'   => $_POST['name'],
+                'amount' => $_POST['amount']
+            ]);
+            $this->payrollModel->syncTotals($_POST['run_id']);
+            $_SESSION['payroll_message'] = ['type' => 'success', 'text' => 'Allowance added.'];
+            redirect('Payrolls/details/' . $_POST['period_id']);
+        }
+    }
+
+    // POST: /Payrolls/removeAllowance
+    public function removeAllowance() {
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $this->payrollModel->removeAllowance($_POST['allowance_id']);
+            $this->payrollModel->syncTotals($_POST['run_id']);
+            $_SESSION['payroll_message'] = ['type' => 'success', 'text' => 'Allowance removed.'];
+            redirect('Payrolls/details/' . $_POST['period_id']);
+        }
+    }
+
+    // POST: /Payrolls/addDeduction
+    public function addDeduction() {
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $this->payrollModel->addDeduction([
+                'run_id' => $_POST['run_id'],
+                'name'   => $_POST['name'],
+                'amount' => $_POST['amount']
+            ]);
+            $this->payrollModel->syncTotals($_POST['run_id']);
+            $_SESSION['payroll_message'] = ['type' => 'success', 'text' => 'Deduction added.'];
+            redirect('Payrolls/details/' . $_POST['period_id']);
+        }
+    }
+
+    // POST: /Payrolls/removeDeduction
+    public function removeDeduction() {
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $this->payrollModel->removeDeduction($_POST['deduction_id']);
+            $this->payrollModel->syncTotals($_POST['run_id']);
+            $_SESSION['payroll_message'] = ['type' => 'success', 'text' => 'Deduction removed.'];
+            redirect('Payrolls/details/' . $_POST['period_id']);
+        }
+    }
+
+    // POST: /Payrolls/recordPayslip
+    public function recordPayslip() {
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $run_id   = $_POST['run_id'];
+            $existing = $this->payrollModel->getPayslipByRun($run_id);
+            if (!$existing) {
+                $this->payrollModel->recordPayslip($run_id);
+            }
+            redirect('Payrolls/payslip/' . $run_id);
+        }
+    }
+
+    // POST: /Payrolls/release
+    public function release($period_id) {
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $missing = $this->payrollModel->getMissingPayslips($period_id);
+            if ($missing > 0) {
+                $_SESSION['payroll_message'] = ['type' => 'error', 'text' => "$missing employee(s) still missing payslips."];
+            } else {
+                $this->payrollModel->releasePeriod($period_id);
+                $_SESSION['payroll_message'] = ['type' => 'success', 'text' => 'Payroll released successfully.', ];
+            }
+            redirect('Payrolls/details/' . $period_id);
         }
     }
 }

@@ -3,7 +3,7 @@
 
         <div class="flex items-center gap-2">
             <h2 class="text-sm font-semibold tracking-tight text-white">
-                &copy; <?php echo date('Y'); ?> JSON Payrullo
+                &copy; <?php echo date('Y'); ?> JSON Derullo
             </h2>
             <span class="hidden h-4 w-px bg-zinc-800 md:block"></span>
             <p class="text-xs text-zinc-500">All rights reserved.</p>

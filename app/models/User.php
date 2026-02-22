@@ -18,7 +18,7 @@ class User{
         return $this->db->resultSet();
     }
     public function findUserByEmail($email) {
-        $this->db->query("CALL getUserRowByUsernameOrEmail(:login)");
+        $this->db->query("CALL login_getUserRowByEmail(:login)");
         $this->db->bind(':login', $email);
         return $this->db->single();
     }
@@ -44,20 +44,18 @@ class User{
         return $row->total;
     }
     public function insertFullEmployee($data) {
-        $password_hash = password_hash($data['password'], PASSWORD_DEFAULT);
-
+        // DO NOT hash again here; it's already hashed in the controller
         $this->db->query("CALL sp_InsertNewEmployee(
         :username, :email, :password_hash, :role,
         :employee_code, :first_name, :middle_name, :last_name,
         :phone, :address, :birthdate, :hire_date,
-        :employment_type_id, :department_id, :position_id, :basic_salary,
+        :employment_type, :department_id, :position_id, :basic_salary,
         :shift_id, :leave_type_id, :allocated_days
     )");
 
-        // Bind all 19 parameters in order
         $this->db->bind(':username', $data['username']);
         $this->db->bind(':email', $data['email']);
-        $this->db->bind(':password_hash', $password_hash);
+        $this->db->bind(':password_hash', $data['password']); // Already hashed
         $this->db->bind(':role', $data['role']);
         $this->db->bind(':employee_code', $data['employee_code']);
         $this->db->bind(':first_name', $data['first_name']);
@@ -67,7 +65,7 @@ class User{
         $this->db->bind(':address', $data['address']);
         $this->db->bind(':birthdate', $data['birthdate']);
         $this->db->bind(':hire_date', $data['hire_date']);
-        $this->db->bind(':employment_type_id', $data['employment_type_id']);
+        $this->db->bind(':employment_type', $data['employment_type']); // Match controller key
         $this->db->bind(':department_id', $data['department_id']);
         $this->db->bind(':position_id', $data['position_id']);
         $this->db->bind(':basic_salary', $data['basic_salary']);
@@ -77,10 +75,9 @@ class User{
 
         return $this->db->execute();
     }
-    public function deleteUserByCode($code) {
-        $this->db->query("CALL sp_DeleteUserByCode(:code)");
+    public function resignEmployee($code) {
+        $this->db->query('CALL sp_ResignEmployee(:code)');
         $this->db->bind(':code', $code);
-
         return $this->db->execute();
     }
 

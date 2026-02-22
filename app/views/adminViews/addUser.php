@@ -11,6 +11,20 @@
                 </p>
             </header>
 
+            <?php if (!empty($data['error'])): ?>
+                <div class="mb-8 flex items-center gap-4 rounded-2xl border border-red-500/50 bg-red-500/10 p-5 shadow-lg shadow-red-500/5 animate-pulse">
+                    <div class="flex-shrink-0 text-red-500">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-xs font-black uppercase tracking-widest text-red-500">Registration Error</h3>
+                        <p class="text-sm font-bold text-red-200 mt-1 italic"><?php echo $data['error']; ?></p>
+                    </div>
+                </div>
+            <?php endif; ?>
+
             <form action="<?php echo URLROOT; ?>/AddUser/addUser" method="POST" class="space-y-8">
 
                 <div class="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-8 backdrop-blur-sm shadow-2xl">
@@ -20,7 +34,7 @@
                     <div class="grid gap-6 md:grid-cols-2">
                         <div class="space-y-2">
                             <label class="text-xs font-bold uppercase tracking-wide text-zinc-300">Username</label>
-                            <input type="text" name="username" required
+                            <input type="text" name="username" placeholder="Username" required
                                    class="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white placeholder-zinc-500 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
                         </div>
                         <div class="space-y-2">

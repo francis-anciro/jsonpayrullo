@@ -45,7 +45,7 @@ class EditUser extends Controller {
                     $_SESSION['flash_error'] = "This department already has a manager assigned.";
                 } else {
                     // Fallback for other errors (like the argument count error)
-                    $_SESSION['flash_error'] = "An unexpected database error occurred.";
+                    $_SESSION['flash_error'] = "DB Error: " . $e->getMessage();
                 }
                 redirect('EmployeeList');
             }

@@ -36,11 +36,6 @@
             </button>
         </div>
 
-        <p class="mt-8 text-center text-sm text-zinc-400">
-            Don't have an account?
-            <a href="<?php echo URLROOT; ?>/register" class="font-medium text-indigo-400 hover:text-indigo-300 transition">
-                Register here
-            </a>
-        </p>
+
     </form>
 </div>

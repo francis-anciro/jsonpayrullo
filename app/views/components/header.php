@@ -1,6 +1,6 @@
 <nav class="flex items-center justify-between border-b border-zinc-800 bg-zinc-950 px-6 py-4">
     <div class="text-lg font-bold text-white tracking-tight">
-        JSON Payrullo<span class="text-indigo-500">.</span>
+        JSON Derullo<span class="text-indigo-500">.</span>
     </div>
 
     <a href="<?php echo URLROOT;?>/login/logout"

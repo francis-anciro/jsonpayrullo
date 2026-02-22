@@ -13,10 +13,14 @@
                    class="relative py-5 transition <?php echo isActive('employeeList'); ?>">
                     Employee List
                 </a>
-
-                <a href="#" class="relative py-5 transition <?php echo isActive('registration'); ?>">
-                    Analytics
+                <a href="<?php echo URLROOT;?>/Payrolls"
+                   class="relative py-5 transition <?php echo isActive('employeeList'); ?>">
+                    Payroll
                 </a>
+
+<!--                <a href="#" class="relative py-5 transition --><?php //echo isActive('registration'); ?><!--">-->
+<!--                    Analytics-->
+<!--                </a>-->
 
             </div>
         </div>

@@ -16,6 +16,7 @@ class EmployeeList extends Controller {
             'title' => 'employeeList',
             'users' => $users,
             'role'  => $_SESSION['role'],
+            'current_user_id' => $_SESSION['User_id']
         ];
         $this->view('employeeList', $data);
     }
@@ -47,18 +48,12 @@ class EmployeeList extends Controller {
         return $deptName;
     }
     public function delete($code) {
-        // Only allow deletion via POST for security
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-
-            // Call the model method we created earlier
-            if ($this->userModel->deleteUserByCode($code)) {
-                // Success: Redirect back to the list
-                redirect('EmployeeList');
+            if ($this->userModel->resignEmployee($code)) {
+                $_SESSION['flash_success'] = "Employee status updated to Resigned.";
             } else {
-                die('Error: Could not delete the employee.');
+                $_SESSION['flash_error'] = "Failed to update employee status.";
             }
-        } else {
-            // If someone tries to access via URL (GET), send them back
             redirect('EmployeeList');
         }
     }

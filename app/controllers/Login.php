@@ -28,11 +28,23 @@ class Login extends Controller {
 
             $user = $this->userModel->findUserByEmail($email);
 
+            if ((int)$user->is_active === 0) {
+                return $this->view('login', [
+                    'title' => 'Login',
+                    'status' => 'failed',
+                    'response' => 'Account deactivated. Please contact HR.'
+                ]);
+            }
+
             if ($user) {
                 if (password_verify($password, $user->password_hash)) {
-                    $_SESSION['User_id'] = $user->User_id;
+                    // No extra method calls needed. Everything is in $user.
+                    $_SESSION['User_id'] = $user->User_ID;
+                    $_SESSION['Employee_ID'] = $user->Employee_ID;
                     $_SESSION['username'] = $user->username;
-                    $_SESSION['role'] = $user->role; // Store the role in the session here
+                    $_SESSION['role'] = $user->role;
+
+//                    dumpNDie($user);
                     redirect('home');
                     exit();
                 } else {

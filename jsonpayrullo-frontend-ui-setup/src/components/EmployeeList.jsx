@@ -20,6 +20,7 @@ const EmployeeList = () => {
   // -----------------------------------------------------
   const [isMounted, setIsMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all'); // NEW: Status filter state
   const [isSearching, setIsSearching] = useState(false);
   const [isResigning, setIsResigning] = useState(null);
   const [isMarkingLeave, setIsMarkingLeave] = useState(null);
@@ -99,27 +100,41 @@ const EmployeeList = () => {
   };
 
   // -----------------------------------------------------
-  // SEARCH LOGIC
+  // UPGRADED SEARCH & FILTER LOGIC
   // -----------------------------------------------------
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       setIsSearching(true);
-      if (searchQuery.trim() === '') {
-        setEmployees(masterEmployees);
-      } else {
+
+      let filteredList = masterEmployees;
+
+      // 1. Apply Status Filter
+      if (statusFilter !== 'all') {
+        filteredList = filteredList.filter(emp => {
+          const normalizedStatus = emp.status.toLowerCase().replace('_', '-');
+          if (statusFilter === 'active') {
+            return normalizedStatus === 'present' || normalizedStatus === 'active';
+          }
+          return normalizedStatus === statusFilter;
+        });
+      }
+
+      // 2. Apply Search Query
+      if (searchQuery.trim() !== '') {
         const lowerCaseQuery = searchQuery.toLowerCase();
-        const filtered = masterEmployees.filter(emp =>
+        filteredList = filteredList.filter(emp =>
             (emp.first_name && emp.first_name.toLowerCase().includes(lowerCaseQuery)) ||
             (emp.last_name && emp.last_name.toLowerCase().includes(lowerCaseQuery)) ||
             (emp.employee_code && emp.employee_code.toLowerCase().includes(lowerCaseQuery))
         );
-        setEmployees(filtered);
       }
+
+      setEmployees(filteredList);
       setIsSearching(false);
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery, masterEmployees]);
+  }, [searchQuery, statusFilter, masterEmployees]);
 
   // -----------------------------------------------------
   // HANDLERS
@@ -191,9 +206,9 @@ const EmployeeList = () => {
 
       if (response.ok && result.status === 'success') {
         // Update local state to gray out the card (status: 'resigned')
-        setEmployees(prev => prev.map(emp =>
-            emp.employee_code === code ? { ...emp, status: 'resigned' } : emp
-        ));
+        const updateList = (list) => list.map(emp => emp.employee_code === code ? { ...emp, status: 'resigned' } : emp);
+        setMasterEmployees(prev => updateList(prev));
+        setEmployees(prev => updateList(prev));
       } else {
         alert(result.response || "Failed to resign employee");
       }
@@ -256,15 +271,21 @@ const EmployeeList = () => {
   };
 
   const getStatusStyle = (status) => {
-    switch (status) {
-      case 'present': return 'border-green-500 text-green-500 bg-green-500/10';
-      case 'on-leave': return 'border-yellow-500 text-yellow-500 bg-yellow-500/10';
-      case 'absent': return 'border-red-500 text-red-500 bg-red-500/10';
-      case 'resigned': return 'border-zinc-500 text-zinc-500 bg-zinc-500/10';
-      case 'Present': return 'border-green-500 text-green-500 bg-green-500/10';
-      case 'Late': return 'border-yellow-500 text-yellow-500 bg-yellow-500/10';
-      case 'Absent': return 'border-red-500 text-red-500 bg-red-500/10';
-      default: return 'border-zinc-500 text-zinc-500 bg-zinc-500/10';
+    const normalizedStatus = status.toLowerCase().replace('_', '-');
+    switch (normalizedStatus) {
+      case 'present':
+      case 'active':
+        return 'border-green-500 text-green-500 bg-green-500/10';
+      case 'on-leave':
+        return 'border-yellow-500 text-yellow-500 bg-yellow-500/10';
+      case 'absent':
+        return 'border-red-500 text-red-500 bg-red-500/10';
+      case 'resigned':
+        return 'border-zinc-500 text-zinc-500 bg-zinc-500/10';
+      case 'late':
+        return 'border-yellow-500 text-yellow-500 bg-yellow-500/10';
+      default:
+        return 'border-zinc-500 text-zinc-500 bg-zinc-500/10';
     }
   };
 
@@ -302,22 +323,46 @@ const EmployeeList = () => {
             {/* Subtle top edge glow for depth */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent"></div>
 
-            {/* SEARCH BAR */}
-            <div className="w-full relative">
-              <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                {isSearching ? (
-                    <Loader2 className="text-emerald-500 animate-spin" size={20} />
-                ) : (
-                    <Search className="text-zinc-500" size={20} />
-                )}
+            {/* SEARCH & FILTER BAR WRAPPER */}
+            <div className="flex flex-col lg:flex-row gap-4 w-full relative">
+              <div className="w-full relative flex-1">
+                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                  {isSearching ? (
+                      <Loader2 className="text-emerald-500 animate-spin" size={20} />
+                  ) : (
+                      <Search className="text-zinc-500" size={20} />
+                  )}
+                </div>
+                <input
+                    type="text"
+                    className="w-full pl-14 pr-6 py-4 bg-zinc-900/40 border border-zinc-800/80 rounded-2xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all outline-none text-white placeholder-zinc-500 shadow-inner"
+                    placeholder="Search employees by name or code..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
-              <input
-                  type="text"
-                  className="w-full pl-14 pr-6 py-4 bg-zinc-900/40 border border-zinc-800/80 rounded-2xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all outline-none text-white placeholder-zinc-500 shadow-inner"
-                  placeholder="Search employees by name or code..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-              />
+
+              {/* STATUS FILTER BUTTONS */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide flex-shrink-0">
+                {[
+                  { id: 'all', label: 'All' },
+                  { id: 'active', label: 'Active' },
+                  { id: 'on-leave', label: 'On Leave' },
+                  { id: 'resigned', label: 'Resigned' }
+                ].map(filter => (
+                    <button
+                        key={filter.id}
+                        onClick={() => setStatusFilter(filter.id)}
+                        className={`px-5 py-4 rounded-2xl border text-xs font-black tracking-widest uppercase transition-all whitespace-nowrap shadow-inner ${
+                            statusFilter === filter.id
+                                ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+                                : 'bg-zinc-900/40 border-zinc-800/80 text-zinc-500 hover:text-white hover:border-zinc-600'
+                        }`}
+                    >
+                      {filter.label}
+                    </button>
+                ))}
+              </div>
             </div>
 
             {/* EMPLOYEE CARDS */}
@@ -333,104 +378,108 @@ const EmployeeList = () => {
                   </div>
               ) : (
                   /* --- UPGRADED TABLE ROWS ("FIRE" DESIGN) --- */
-                  employees.map((emp) => (
-                      <div key={emp.id} className={`group bg-[#121212] border border-zinc-800/80 ${emp.status === 'resigned' ? 'opacity-60' : 'hover:border-emerald-500/50 hover:-translate-y-1 hover:shadow-[0_8px_30px_-4px_rgba(16,185,129,0.15)]'} transition-all duration-300 rounded-2xl p-6 relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6`}>
+                  employees.map((emp) => {
+                    const normalizedStatus = emp.status.toLowerCase().replace('_', '-');
 
-                        {/* Subtle Left Border Glow based on status */}
-                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${emp.status === 'present' ? 'bg-green-500' : emp.status === 'on-leave' ? 'bg-yellow-500' : emp.status === 'absent' ? 'bg-red-500' : 'bg-zinc-500'} opacity-20 group-hover:opacity-100 transition-opacity`}></div>
+                    return (
+                        <div key={emp.id} className={`group bg-[#121212] border border-zinc-800/80 ${normalizedStatus === 'resigned' ? 'opacity-60' : 'hover:border-emerald-500/50 hover:-translate-y-1 hover:shadow-[0_8px_30px_-4px_rgba(16,185,129,0.15)]'} transition-all duration-300 rounded-2xl p-6 relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6`}>
 
-                        <div className="flex flex-col md:flex-row items-start md:items-center gap-6 w-full pl-2">
+                          {/* Subtle Left Border Glow based on status */}
+                          <div className={`absolute left-0 top-0 bottom-0 w-1 ${normalizedStatus === 'present' || normalizedStatus === 'active' ? 'bg-green-500' : normalizedStatus === 'on-leave' ? 'bg-yellow-500' : normalizedStatus === 'absent' ? 'bg-red-500' : 'bg-zinc-500'} opacity-20 group-hover:opacity-100 transition-opacity`}></div>
 
-                          {/* Avatar Container Upgrade */}
-                          <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white transition-colors flex-shrink-0 shadow-inner">
+                          <div className="flex flex-col md:flex-row items-start md:items-center gap-6 w-full pl-2">
+
+                            {/* Avatar Container Upgrade */}
+                            <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white transition-colors flex-shrink-0 shadow-inner">
                       <span className="text-xl md:text-2xl font-black tracking-widest drop-shadow-md">
                         {emp.first_name[0] || '?'}{(emp.last_name && emp.last_name[0]) || ''}
                       </span>
-                          </div>
-
-                          <div className="flex flex-col gap-2 w-full md:w-[40%] border-b md:border-b-0 md:border-r border-zinc-800/50 pb-4 md:pb-0 md:pr-6">
-                            <div className="flex items-center gap-3">
-                              <h3 className={`text-xl font-black ${emp.status === 'resigned' ? 'text-zinc-500' : 'text-white'} uppercase tracking-wider drop-shadow-sm`}>{emp.first_name} {emp.mid_name} {emp.last_name}</h3>
-                              <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black tracking-[0.1em] uppercase border shadow-inner ${getStatusStyle(emp.status)}`}>
-                          {emp.status}
-                        </span>
                             </div>
-                            <div className="flex flex-col gap-1 text-xs md:text-sm mt-1">
-                              <span className="text-emerald-400 font-bold tracking-widest uppercase">{emp.role}</span>
-                              <span className="text-zinc-400 font-medium tracking-widest uppercase">{emp.department}</span>
 
-                              <span className="inline-block px-3 py-1.5 bg-zinc-800/40 border border-zinc-700/50 rounded-lg text-zinc-400 font-bold tracking-widest uppercase mt-2 w-fit text-[10px] shadow-inner">
+                            <div className="flex flex-col gap-2 w-full md:w-[40%] border-b md:border-b-0 md:border-r border-zinc-800/50 pb-4 md:pb-0 md:pr-6">
+                              <div className="flex items-center gap-3">
+                                <h3 className={`text-xl font-black ${normalizedStatus === 'resigned' ? 'text-zinc-500' : 'text-white'} uppercase tracking-wider drop-shadow-sm`}>{emp.first_name} {emp.mid_name} {emp.last_name}</h3>
+                                <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black tracking-[0.1em] uppercase border shadow-inner ${getStatusStyle(emp.status)}`}>
+                          {normalizedStatus === 'on-leave' ? 'On Leave' : emp.status}
+                        </span>
+                              </div>
+                              <div className="flex flex-col gap-1 text-xs md:text-sm mt-1">
+                                <span className="text-emerald-400 font-bold tracking-widest uppercase">{emp.role}</span>
+                                <span className="text-zinc-400 font-medium tracking-widest uppercase">{emp.department}</span>
+
+                                <span className="inline-block px-3 py-1.5 bg-zinc-800/40 border border-zinc-700/50 rounded-lg text-zinc-400 font-bold tracking-widest uppercase mt-2 w-fit text-[10px] shadow-inner">
                           CODE: {emp.employee_code}
                         </span>
+                              </div>
                             </div>
-                          </div>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 flex-1 text-xs md:text-sm md:pl-6">
-                            <div className="flex flex-col gap-1">
-                              <span className="text-zinc-600 font-bold uppercase tracking-widest text-[10px]">Contact</span>
-                              <span className="text-zinc-300 font-medium">{emp.phone}</span>
-                              <span className="text-zinc-400">{emp.email}</span>
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <span className="text-zinc-600 font-bold uppercase tracking-widest text-[10px]">Dates</span>
-                              <div className="flex flex-col gap-1.5">
-                                <span className="flex items-center justify-between text-zinc-400"><span className="text-zinc-500">DOB:</span> <span className="text-zinc-300 font-medium">{emp.birthdate}</span></span>
-                                <span className="flex items-center justify-between text-zinc-400"><span className="text-zinc-500">Hired:</span> <span className="text-zinc-300 font-medium">{emp.hiredate}</span></span>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 flex-1 text-xs md:text-sm md:pl-6">
+                              <div className="flex flex-col gap-1">
+                                <span className="text-zinc-600 font-bold uppercase tracking-widest text-[10px]">Contact</span>
+                                <span className="text-zinc-300 font-medium">{emp.phone}</span>
+                                <span className="text-zinc-400">{emp.email}</span>
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <span className="text-zinc-600 font-bold uppercase tracking-widest text-[10px]">Dates</span>
+                                <div className="flex flex-col gap-1.5">
+                                  <span className="flex items-center justify-between text-zinc-400"><span className="text-zinc-500">DOB:</span> <span className="text-zinc-300 font-medium">{emp.birthdate}</span></span>
+                                  <span className="flex items-center justify-between text-zinc-400"><span className="text-zinc-500">Hired:</span> <span className="text-zinc-300 font-medium">{emp.hiredate}</span></span>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
 
-                        {/* --- UPGRADED 2x2 ACTION BUTTON GRID --- */}
-                        <div className="grid grid-cols-2 gap-2 flex-shrink-0 mt-4 md:mt-0 z-10 pr-2">
-                          <button
-                              onClick={() => openViewModal(emp)}
-                              className="p-3 text-zinc-400 bg-zinc-800/30 hover:bg-emerald-500/10 hover:text-emerald-400 hover:shadow-[0_0_15px_rgba(16,185,129,0.2)] border border-zinc-700/50 hover:border-emerald-500/50 rounded-xl transition-all flex justify-center items-center"
-                              title="View Details"
-                          >
-                            <FileSearch size={20} />
-                          </button>
-                          <Link
-                              // Change emp.id to emp.employee_code
+                          {/* --- UPGRADED 2x2 ACTION BUTTON GRID --- */}
+                          <div className="grid grid-cols-2 gap-2 flex-shrink-0 mt-4 md:mt-0 z-10 pr-2">
+                            <button
+                                onClick={() => openViewModal(emp)}
+                                className="p-3 text-zinc-400 bg-zinc-800/30 hover:bg-emerald-500/10 hover:text-emerald-400 hover:shadow-[0_0_15px_rgba(16,185,129,0.2)] border border-zinc-700/50 hover:border-emerald-500/50 rounded-xl transition-all flex justify-center items-center"
+                                title="View Details"
+                            >
+                              <FileSearch size={20} />
+                            </button>
+                            <Link
+                                // Change emp.id to emp.employee_code
                                 to={`/employees/edit/${emp.employee_code}`}
-                              className="p-3 text-zinc-400 bg-zinc-800/30 hover:bg-blue-500/10 hover:text-blue-400 hover:shadow-[0_0_15px_rgba(59,130,246,0.2)] border border-zinc-700/50 hover:border-blue-500/50 rounded-xl transition-all flex justify-center items-center"
-                              title="Edit Employee"
-                          >
-                            <Settings size={20} />
-                          </Link>
+                                className="p-3 text-zinc-400 bg-zinc-800/30 hover:bg-blue-500/10 hover:text-blue-400 hover:shadow-[0_0_15px_rgba(59,130,246,0.2)] border border-zinc-700/50 hover:border-blue-500/50 rounded-xl transition-all flex justify-center items-center"
+                                title="Edit Employee"
+                            >
+                              <Settings size={20} />
+                            </Link>
 
-                          {/* Dynamic Toggle Leave Button */}
-                          <button
-                              onClick={() => toggleLeaveStatus(emp)}
-                              disabled={isMarkingLeave === emp.id || emp.status === 'resigned'}
-                              className={`p-3 rounded-xl transition-all border flex justify-center items-center ${
-                                  emp.status === 'resigned'
-                                      ? 'bg-zinc-900/50 text-zinc-700 border-zinc-800/50 cursor-not-allowed'
-                                      : emp.status === 'on-leave'
-                                          ? 'text-zinc-400 bg-zinc-800/30 border-zinc-700/50 hover:bg-green-500/10 hover:text-green-400 hover:shadow-[0_0_15px_rgba(34,197,94,0.2)] hover:border-green-500/50'
-                                          : 'text-zinc-400 bg-zinc-800/30 border-zinc-700/50 hover:bg-yellow-500/10 hover:text-yellow-400 hover:shadow-[0_0_15px_rgba(234,179,8,0.2)] hover:border-yellow-500/50'
-                              }`}
-                              title={emp.status === 'on-leave' ? "Return to Active" : "Mark as On Leave"}
-                          >
-                            {isMarkingLeave === emp.id
-                                ? <Loader2 size={20} className="animate-spin" />
-                                : emp.status === 'on-leave'
-                                    ? <CalendarCheck size={20} />
-                                    : <CalendarMinus size={20} />
-                            }
-                          </button>
+                            {/* Dynamic Toggle Leave Button */}
+                            <button
+                                onClick={() => toggleLeaveStatus(emp)}
+                                disabled={isMarkingLeave === emp.id || normalizedStatus === 'resigned'}
+                                className={`p-3 rounded-xl transition-all border flex justify-center items-center ${
+                                    normalizedStatus === 'resigned'
+                                        ? 'bg-zinc-900/50 text-zinc-700 border-zinc-800/50 cursor-not-allowed'
+                                        : normalizedStatus === 'on-leave'
+                                            ? 'text-zinc-400 bg-zinc-800/30 border-zinc-700/50 hover:bg-green-500/10 hover:text-green-400 hover:shadow-[0_0_15px_rgba(34,197,94,0.2)] hover:border-green-500/50'
+                                            : 'text-zinc-400 bg-zinc-800/30 border-zinc-700/50 hover:bg-yellow-500/10 hover:text-yellow-400 hover:shadow-[0_0_15px_rgba(234,179,8,0.2)] hover:border-yellow-500/50'
+                                }`}
+                                title={normalizedStatus === 'on-leave' ? "Return to Active" : "Mark as On Leave"}
+                            >
+                              {isMarkingLeave === emp.id
+                                  ? <Loader2 size={20} className="animate-spin" />
+                                  : normalizedStatus === 'on-leave'
+                                      ? <CalendarCheck size={20} />
+                                      : <CalendarMinus size={20} />
+                              }
+                            </button>
 
-                          <button
-                              onClick={() => openResignModal(emp)}
-                              disabled={isResigning === emp.id || emp.status === 'resigned'}
-                              className={`p-3 rounded-xl transition-all border flex justify-center items-center ${emp.status === 'resigned' ? 'bg-zinc-900/50 text-zinc-700 border-zinc-800/50 cursor-not-allowed' : 'text-zinc-400 bg-zinc-800/30 border-zinc-700/50 hover:bg-red-500/10 hover:text-red-400 hover:shadow-[0_0_15px_rgba(239,68,68,0.2)] hover:border-red-500/50'}`}
-                              title="Mark as Resigned"
-                          >
-                            {isResigning === emp.id ? <Loader2 size={20} className="animate-spin" /> : <UserMinus size={20} />}
-                          </button>
+                            <button
+                                onClick={() => openResignModal(emp)}
+                                disabled={isResigning === emp.id || normalizedStatus === 'resigned'}
+                                className={`p-3 rounded-xl transition-all border flex justify-center items-center ${normalizedStatus === 'resigned' ? 'bg-zinc-900/50 text-zinc-700 border-zinc-800/50 cursor-not-allowed' : 'text-zinc-400 bg-zinc-800/30 border-zinc-700/50 hover:bg-red-500/10 hover:text-red-400 hover:shadow-[0_0_15px_rgba(239,68,68,0.2)] hover:border-red-500/50'}`}
+                                title="Mark as Resigned"
+                            >
+                              {isResigning === emp.id ? <Loader2 size={20} className="animate-spin" /> : <UserMinus size={20} />}
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                  ))
+                    )}
+                  )
               )}
             </div>
           </div>

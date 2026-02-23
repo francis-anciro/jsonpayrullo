@@ -1,12 +1,12 @@
 <?php
+//THIS IS MODEL FOR PAYROLL
+//SEPARATED FROM USER SO USER DOESNT GET TOO CLUTTERED
 class Payroll {
     private $db;
 
     public function __construct() {
         $this->db = new Database();
     }
-
-    // ── PERIODS ──────────────────────────────────────────
 
     public function getPeriods() {
         $this->db->query("

@@ -10,8 +10,16 @@ class User{
         $this->db->query("
         SELECT 
             u.*, 
+            e.Employee_ID,
             e.Department_ID,
-            e.employee_code
+            e.employee_code,
+            e.phone,
+            e.hire_date,
+            e.birthdate,
+            e.first_name,
+            e.last_name,
+            e.address,
+            e.basic_salary -- Added basic_salary
         FROM users u
         INNER JOIN employees e ON u.User_ID = e.User_ID
     ");
@@ -96,10 +104,14 @@ class User{
     }
 
     public function updateFullEmployee($data) {
-        // 11 placeholders to match your SQL procedure
-        $this->db->query("CALL sp_UpdateEmployee(:code, :email, :role, :fname, :lname, :phone, :address, :dept, :pos, :salary, :shift)");
+        // 12 placeholders to match the updated sp_UpdateEmployee
+        $this->db->query("CALL sp_UpdateEmployee(
+        :code, :username, :email, :role, :fname, :lname, 
+        :phone, :address, :dept, :pos, :salary, :shift
+    )");
 
         $this->db->bind(':code', $data['employee_code']);
+        $this->db->bind(':username', $data['username']); // RESTORED
         $this->db->bind(':email', $data['email']);
         $this->db->bind(':role', $data['role']);
         $this->db->bind(':fname', $data['first_name']);
@@ -107,10 +119,17 @@ class User{
         $this->db->bind(':phone', $data['phone']);
         $this->db->bind(':address', $data['address']);
         $this->db->bind(':dept', $data['department_id']);
-        $this->db->bind(':pos', $data['position_id']); // This was likely the missing 11th arg
+        $this->db->bind(':pos', $data['position_id']);
         $this->db->bind(':salary', $data['basic_salary']);
         $this->db->bind(':shift', $data['shift_id']);
 
+        return $this->db->execute();
+    }
+    public function updateEmploymentStatus($code, $status) {
+        // Standardized call for any status update (active, on-leave, etc.)
+        $this->db->query('CALL employeeList_UpdateEmploymentStatus(:code, :status)');
+        $this->db->bind(':code', $code);
+        $this->db->bind(':status', $status);
         return $this->db->execute();
     }
 }

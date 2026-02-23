@@ -37,7 +37,9 @@ class EditUser extends Controller {
 
             $data = [
                 'employee_code' => $inputData['employee_code'] ?? null,
+                'username'      => trim($inputData['username'] ?? ''), // ADD THIS LINE
                 'email'         => trim($inputData['email'] ?? ''),
+                'password'      => !empty($inputData['password']) ? password_hash($inputData['password'], PASSWORD_DEFAULT) : null, // OPTIONAL: Handle password update
                 'role'          => $inputData['role'] ?? '',
                 'first_name'    => trim($inputData['first_name'] ?? ''),
                 'last_name'     => trim($inputData['last_name'] ?? ''),

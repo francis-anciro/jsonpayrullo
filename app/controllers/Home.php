@@ -27,9 +27,7 @@ class Home extends Controller
         // 2. Return JSON for React, or View for PHP
         return $this->handleResponse($data, 200, 'home');
     }
-    /////////////////
-    ////////////////////////////////
-    ///////////////////////////////
+
 // attendance, i added this here instead of creating an attendance
 //controller bc the tap in and tap out is in the home and not in jsonpayrullo/attendance
 

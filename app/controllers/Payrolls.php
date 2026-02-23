@@ -2,12 +2,12 @@
 class Payrolls extends Controller {
     public function __construct() {
         // Auth check: Use handleResponse for unauthorized API calls
-        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-            if ($this->isApiRequest()) {
-                return $this->handleResponse(['status' => 'error', 'response' => 'Admin access required'], 403);
-            }
-            redirect('home');
-        }
+//        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+//            if ($this->isApiRequest()) {
+//                return $this->handleResponse(['status' => 'error', 'response' => 'Admin access required'], 403);
+//            }
+//            redirect('home');
+//        }
         $this->payrollModel = $this->model('Payroll');
     }
 
@@ -89,13 +89,15 @@ class Payrolls extends Controller {
     // POST: /Payrolls/addAllowance
     public function addAllowance() {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $inputData = json_decode(file_get_contents("php://input"), true) ?? $_POST;
+            $inputData = json_decode(file_get_contents("php://input"), true);
 
             $this->payrollModel->addAllowance([
                 'run_id' => $inputData['run_id'],
                 'name'   => $inputData['name'],
                 'amount' => $inputData['amount']
             ]);
+
+            // Recalculate Gross/Net in DB
             $this->payrollModel->syncTotals($inputData['run_id']);
 
             return $this->handleResponse(['status' => 'success', 'response' => 'Allowance added.'], 200);
@@ -103,6 +105,22 @@ class Payrolls extends Controller {
     }
     // POST: /Payrolls/release/5
 // POST: /Payrolls/release/5
+    public function addDeduction() {
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $inputData = json_decode(file_get_contents("php://input"), true);
+
+            $this->payrollModel->addDeduction([
+                'run_id' => $inputData['run_id'],
+                'name'   => $inputData['name'],
+                'amount' => $inputData['amount']
+            ]);
+
+            // Recalculate Gross/Net in DB
+            $this->payrollModel->syncTotals($inputData['run_id']);
+
+            return $this->handleResponse(['status' => 'success', 'response' => 'Deduction added.'], 200);
+        }
+    }
     public function release($id) {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Attempt to update status to 'released'

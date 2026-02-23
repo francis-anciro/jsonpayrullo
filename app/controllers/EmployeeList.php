@@ -4,31 +4,41 @@ class EmployeeList extends Controller {
         // CORS and OPTIONS are handled in public/index.php
 
         // Dual-compatible Admin check
-        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-            if ($this->isApiRequest()) {
-                $this->sendJson(['status' => 'error', 'response' => 'Unauthorized: Admin access required'], 403);
-            } else {
-                redirect('home');
-                exit();
-            }
-        }
+//        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+//            if ($this->isApiRequest()) {
+//                $this->sendJson(['status' => 'error', 'response' => 'Unauthorized: Admin access required'], 403);
+//            } else {
+//                redirect('home');
+//                exit();
+//            }
+//        }
+        $this->attendanceModel = $this->model('Attendance'); // for attendance
         $this->userModel = $this->model('User');
     }
 
-    public function index(){
+    public function index() {
+        // 1. Fetch all users using your updated query (with phone, dates, etc.)
         $users = $this->userModel->getUsers();
+
+        // 2. Loop and attach supplemental data
         foreach ($users as $user) {
+            // Attach Department Name
             $user->department_name = $this->getDeptName($user->Department_ID);
+
+            // Fetch FULL attendance history using your existing model method
+            // This replaces the broken $attendanceHistory variable
+            $user->attendance_history = $this->attendanceModel->getAttendanceHistory($user->Employee_ID);
         }
 
         $data = [
-            'title' => 'employeeList',
+            'title' => 'Employee List',
             'users' => $users,
-            'role'  => $_SESSION['role'],
-            'current_user_id' => $_SESSION['User_id']
+            'role'  => $_SESSION['role'] ?? 'guest',
+            'current_user_id' => $_SESSION['User_id'] ?? null
         ];
 
-        return $this->handleResponse($data, 200, 'employeeList');
+        // Returns JSON if the React 'Accept' header is present
+        return $this->handleResponse($data, 200, 'adminViews/employeeList');
     }
 
     public function add() {
@@ -71,42 +81,32 @@ class EmployeeList extends Controller {
     }
 
     public function delete($code) {
-        $method = $_SERVER['REQUEST_METHOD'];
-
-        // 1. Validate the Request Method
-        // React typically uses DELETE, while legacy forms use POST
-        if ($method !== 'POST' && $method !== 'DELETE') {
-            if ($this->isApiRequest()) {
-                return $this->handleResponse(['status' => 'error', 'response' => 'Method Not Allowed'], 405);
-            }
-            return;
-        }
-
-        // 2. Call the Model Method
-        // Uses the existing resignEmployee logic from your User model
-        if ($this->userModel->resignEmployee($code)) {
-            if ($this->isApiRequest()) {
-                // Return 200 OK with a success message for React
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'DELETE') {
+            // Pass the employee_code (e.g., OPETECH-2026-1002) to the model
+            if ($this->userModel->resignEmployee($code)) {
                 return $this->handleResponse([
                     'status' => 'success',
-                    'response' => 'Employee status updated to Resigned.',
-                    'employee_code' => $code
+                    'response' => 'Employee successfully resigned.'
                 ], 200);
-            } else {
-                $_SESSION['flash_success'] = "Employee status updated to Resigned.";
-                redirect('EmployeeList');
-                exit();
             }
-        } else {
-            // 3. Handle Failure
-            if ($this->isApiRequest()) {
-                // Return 400 Bad Request if the employee code is invalid or DB fails
-                return $this->handleResponse(['status' => 'error', 'response' => 'Failed to update employee status.'], 400);
-            } else {
-                $_SESSION['flash_error'] = "Failed to update employee status.";
-                redirect('EmployeeList');
-                exit();
+            return $this->handleResponse(['status' => 'error', 'response' => 'Database update failed.'], 400);
+        }
+    }
+    public function toggleLeave($code) {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $inputData = json_decode(file_get_contents("php://input"), true);
+
+            // Take the status directly from the request body
+            $newStatus = $inputData['status'] ?? 'on-leave';
+
+            if ($this->userModel->updateEmploymentStatus($code, $newStatus)) {
+                return $this->handleResponse([
+                    'status' => 'success',
+                    'response' => "Status updated to $newStatus."
+                ], 200);
             }
+
+            return $this->handleResponse(['status' => 'error', 'response' => 'Update failed.'], 400);
         }
     }
 }

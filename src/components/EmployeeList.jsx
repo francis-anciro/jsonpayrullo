@@ -1,0 +1,569 @@
+import React, { useState, useEffect } from 'react';
+import { Search, Plus, Settings, Loader2, UserMinus, AlertTriangle, X, FileSearch, ChevronDown, ChevronUp, Calendar, CalendarDays, Users, CalendarClock, CalendarMinus, CalendarCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
+
+// -----------------------------------------------------
+// REUSABLE VIEW FIELD (For the View Modal)
+// -----------------------------------------------------
+const ViewField = ({ label, value }) => (
+  <div className="flex flex-col gap-2">
+    <label className="text-xs font-bold text-zinc-400 tracking-wider uppercase">{label}</label>
+    <div className="w-full px-4 py-3 bg-zinc-900/40 border border-zinc-800/80 rounded-xl text-white min-h-[46px] flex items-center shadow-inner">
+      {value || <span className="text-zinc-600">-</span>}
+    </div>
+  </div>
+);
+
+const EmployeeList = () => {
+  // -----------------------------------------------------
+  // STATE
+  // -----------------------------------------------------
+  const [isMounted, setIsMounted] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false); 
+  const [isResigning, setIsResigning] = useState(null); 
+  const [isMarkingLeave, setIsMarkingLeave] = useState(null); 
+  
+  // RESIGN MODAL STATE
+  const [showResignModal, setShowResignModal] = useState(false);
+  const [employeeToResign, setEmployeeToResign] = useState(null);
+
+  // VIEW MODAL STATE
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [employeeToView, setEmployeeToView] = useState(null);
+  const [isFetchingDetails, setIsFetchingDetails] = useState(false);
+
+  // ATTENDANCE DROPDOWN STATE
+  const [showAttendance, setShowAttendance] = useState(false);
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [isFetchingAttendance, setIsFetchingAttendance] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Master list
+  const initialEmployees = [
+    { 
+      id: 1, employee_code: 'EMP-001', first_name: 'John', mid_name: 'A.', last_name: 'Doe',
+      role: 'HR Manager', department: 'Human Resources', phone: '+1 234 567 8900', address: '123 Main St, Springfield',
+      birthdate: '1985-05-12', hiredate: '2020-01-15', email: 'john.doe@company.com', username: 'johndoe85', status: 'present',
+      employment_type: 'Full-Time', basic_salary: '75000'
+    },
+    { 
+      id: 2, employee_code: 'EMP-002', first_name: 'Jane', mid_name: 'M.', last_name: 'Smith',
+      role: 'Software Engineer', department: 'IT', phone: '+1 987 654 3210', address: '456 Tech Lane, Silicon Valley',
+      birthdate: '1992-08-22', hiredate: '2021-03-01', email: 'jane.smith@company.com', username: 'janesmith92', status: 'on-leave',
+      employment_type: 'Full-Time', basic_salary: '90000'
+    }
+  ];
+
+  const [employees, setEmployees] = useState(initialEmployees);
+
+  // -----------------------------------------------------
+  // RESTORED SEARCH LOGIC
+  // -----------------------------------------------------
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        await new Promise(resolve => setTimeout(resolve, 400)); 
+
+        if (searchQuery.trim() === '') {
+          setEmployees(initialEmployees);
+        } else {
+          const lowerCaseQuery = searchQuery.toLowerCase();
+          const filtered = initialEmployees.filter(emp => 
+            emp.first_name.toLowerCase().includes(lowerCaseQuery) || 
+            emp.last_name.toLowerCase().includes(lowerCaseQuery) ||
+            emp.employee_code.toLowerCase().includes(lowerCaseQuery)
+          );
+          setEmployees(filtered);
+        }
+      } catch (error) {
+        console.error("Search Error:", error);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
+  // -----------------------------------------------------
+  // HANDLERS
+  // -----------------------------------------------------
+  
+  // UPGRADED: Toggle function handles both going on leave and returning to active
+  const toggleLeaveStatus = async (emp) => {
+    setIsMarkingLeave(emp.id);
+    const newStatus = emp.status === 'on-leave' ? 'present' : 'on-leave';
+    
+    try {
+      console.log(`Marking employee with ID: ${emp.id} as ${newStatus}`);
+      
+      // TODO: BACKEND READY FOR STATUS UPDATE (PUT)
+      // await fetch(`/api/employees/${emp.id}/status`, { 
+      //   method: 'PUT', 
+      //   body: JSON.stringify({ status: newStatus }) 
+      // });
+      await new Promise(resolve => setTimeout(resolve, 800)); 
+      
+      // Update the frontend state to reflect the new status
+      setEmployees(prev => prev.map(e => 
+        e.id === emp.id ? { ...e, status: newStatus } : e
+      ));
+    } catch (error) {
+      console.error("Toggle Leave Error:", error);
+    } finally {
+      setIsMarkingLeave(null);
+    }
+  };
+
+  const openResignModal = (emp) => {
+    setEmployeeToResign(emp);
+    setShowResignModal(true);
+  };
+
+  const closeResignModal = () => {
+    setShowResignModal(false);
+    setEmployeeToResign(null);
+  };
+
+  const confirmResign = async () => {
+    if (!employeeToResign) return;
+    
+    const id = employeeToResign.id;
+    setIsResigning(id);
+    closeResignModal();
+
+    try {
+      console.log(`Marking employee with ID: ${id} as resigned`);
+      
+      // TODO: BACKEND READY FOR STATUS UPDATE (PUT instead of DELETE)
+      // await fetch(`/api/employees/${id}/status`, { 
+      //   method: 'PUT', 
+      //   body: JSON.stringify({ status: 'resigned' }) 
+      // });
+      await new Promise(resolve => setTimeout(resolve, 800)); 
+      
+      // Update the frontend state to reflect the new status
+      setEmployees(prev => prev.map(emp => 
+        emp.id === id ? { ...emp, status: 'resigned' } : emp
+      ));
+    } catch (error) {
+      console.error("Resign Error:", error);
+    } finally {
+      setIsResigning(null);
+    }
+  };
+
+  const openViewModal = async (emp) => {
+    setIsFetchingDetails(true);
+    setEmployeeToView(emp);
+    setShowViewModal(true);
+    
+    setShowAttendance(false);
+    setAttendanceRecords([]);
+
+    try {
+      await new Promise(resolve => setTimeout(resolve, 300)); 
+    } catch (error) {
+      console.error("Error fetching full details:", error);
+    } finally {
+      setIsFetchingDetails(false);
+    }
+  };
+
+  const closeViewModal = () => {
+    setShowViewModal(false);
+    setEmployeeToView(null);
+    setShowAttendance(false);
+  };
+
+  const toggleAttendance = async (empId) => {
+    if (showAttendance) {
+      setShowAttendance(false);
+      return;
+    }
+
+    setShowAttendance(true);
+    setIsFetchingAttendance(true);
+
+    try {
+      console.log(`Fetching recent attendance for Employee ID: ${empId}`);
+      await new Promise(resolve => setTimeout(resolve, 600)); 
+      
+      setAttendanceRecords([
+        { id: 1, date: '2026-02-21', time_in: '08:05 AM', time_out: '05:00 PM', status: 'Present' },
+        { id: 2, date: '2026-02-20', time_in: '08:00 AM', time_out: '05:15 PM', status: 'Present' },
+        { id: 3, date: '2026-02-19', time_in: '09:30 AM', time_out: '06:00 PM', status: 'Late' },
+        { id: 4, date: '2026-02-18', time_in: '-', time_out: '-', status: 'Absent' },
+        { id: 5, date: '2026-02-17', time_in: '07:55 AM', time_out: '05:00 PM', status: 'Present' },
+      ]);
+    } catch (error) {
+      console.error("Failed to fetch attendance:", error);
+    } finally {
+      setIsFetchingAttendance(false);
+    }
+  };
+
+  const getStatusStyle = (status) => {
+    switch (status) {
+      case 'present': return 'border-green-500 text-green-500 bg-green-500/10';
+      case 'on-leave': return 'border-yellow-500 text-yellow-500 bg-yellow-500/10';
+      case 'absent': return 'border-red-500 text-red-500 bg-red-500/10';
+      case 'resigned': return 'border-zinc-500 text-zinc-500 bg-zinc-500/10';
+      case 'Present': return 'border-green-500 text-green-500 bg-green-500/10'; 
+      case 'Late': return 'border-yellow-500 text-yellow-500 bg-yellow-500/10';
+      case 'Absent': return 'border-red-500 text-red-500 bg-red-500/10';
+      default: return 'border-zinc-500 text-zinc-500 bg-zinc-500/10';
+    }
+  };
+
+  return (
+    <div className="relative flex flex-col items-center p-6 md:p-10 min-h-[calc(100vh-4rem)]">
+      
+      {/* --- BACKGROUND LAYER --- */}
+      <div 
+        className={`fixed inset-0 z-0 pointer-events-none transition-opacity duration-1000 opacity-50`}
+        style={{ backgroundImage: 'radial-gradient(#666666 1px, transparent 1px)', backgroundSize: '24px 24px' }}
+      ></div>
+
+      {/* BACKGROUND LIGHTS */}
+      <div className={`fixed top-0 left-0 h-full w-1/4 bg-gradient-to-r from-emerald-500/20 to-transparent blur-3xl pointer-events-none z-0 transition-opacity duration-1000 ${isMounted ? 'opacity-100' : 'opacity-0'}`}></div>
+      <div className={`fixed top-0 right-0 h-full w-1/4 bg-gradient-to-l from-emerald-500/20 to-transparent blur-3xl pointer-events-none z-0 transition-opacity duration-1000 ${isMounted ? 'opacity-100' : 'opacity-0'}`}></div>
+
+      <div className={`relative z-10 w-full max-w-5xl flex flex-col gap-6 transition-all duration-700 ease-out transform ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+        
+        {/* HEADER */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
+          <h1 className="text-2xl md:text-3xl font-black text-white tracking-wide uppercase drop-shadow-lg flex items-center gap-3">
+            <Users className="text-emerald-500" size={32} /> Employee List
+          </h1>
+          <Link 
+            to="/employees/add"
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl font-bold text-sm tracking-wider uppercase transition-colors shadow-lg shadow-blue-600/20 border border-blue-500"
+          >
+            <Plus size={18} /> Add Employee
+          </Link>
+        </div>
+
+        {/* --- UPGRADED LIST CONTAINER --- */}
+        <div className="bg-gradient-to-b from-[#121212]/90 to-[#0a0a0a]/90 backdrop-blur-xl border border-zinc-800/80 shadow-[0_16px_40px_0_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.05)] rounded-[2.5rem] p-6 md:p-8 flex flex-col gap-6 relative overflow-hidden">
+          
+          {/* Subtle top edge glow for depth */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent"></div>
+          
+          {/* SEARCH BAR */}
+          <div className="w-full relative">
+            <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+              {isSearching ? (
+                <Loader2 className="text-emerald-500 animate-spin" size={20} />
+              ) : (
+                <Search className="text-zinc-500" size={20} />
+              )}
+            </div>
+            <input
+              type="text"
+              className="w-full pl-14 pr-6 py-4 bg-zinc-900/40 border border-zinc-800/80 rounded-2xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all outline-none text-white placeholder-zinc-500 shadow-inner"
+              placeholder="Search employees by name or code..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          {/* EMPLOYEE CARDS */}
+          <div className="flex flex-col gap-5">
+            {employees.length === 0 && !isSearching && (
+              <div className="text-center py-10 text-zinc-500 font-bold uppercase tracking-widest">
+                No employees found.
+              </div>
+            )}
+            
+            {/* --- UPGRADED TABLE ROWS ("FIRE" DESIGN) --- */}
+            {employees.map((emp) => (
+              <div key={emp.id} className={`group bg-[#121212] border border-zinc-800/80 ${emp.status === 'resigned' ? 'opacity-60' : 'hover:border-emerald-500/50 hover:-translate-y-1 hover:shadow-[0_8px_30px_-4px_rgba(16,185,129,0.15)]'} transition-all duration-300 rounded-2xl p-6 relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6`}>
+                
+                {/* Subtle Left Border Glow based on status */}
+                <div className={`absolute left-0 top-0 bottom-0 w-1 ${emp.status === 'present' ? 'bg-green-500' : emp.status === 'on-leave' ? 'bg-yellow-500' : emp.status === 'absent' ? 'bg-red-500' : 'bg-zinc-500'} opacity-20 group-hover:opacity-100 transition-opacity`}></div>
+
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-6 w-full pl-2">
+                  
+                  {/* Avatar Container Upgrade */}
+                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white transition-colors flex-shrink-0 shadow-inner">
+                    <span className="text-xl md:text-2xl font-black tracking-widest drop-shadow-md">
+                      {emp.first_name[0]}{emp.last_name[0]}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col gap-2 w-full md:w-[40%] border-b md:border-b-0 md:border-r border-zinc-800/50 pb-4 md:pb-0 md:pr-6">
+                    <div className="flex items-center gap-3">
+                      <h3 className={`text-xl font-black ${emp.status === 'resigned' ? 'text-zinc-500' : 'text-white'} uppercase tracking-wider drop-shadow-sm`}>{emp.first_name} {emp.mid_name} {emp.last_name}</h3>
+                      <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black tracking-[0.1em] uppercase border shadow-inner ${getStatusStyle(emp.status)}`}>
+                        {emp.status}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-1 text-xs md:text-sm mt-1">
+                      <span className="text-emerald-400 font-bold tracking-widest uppercase">{emp.role}</span>
+                      <span className="text-zinc-400 font-medium tracking-widest uppercase">{emp.department}</span>
+                      
+                      <span className="inline-block px-3 py-1.5 bg-zinc-800/40 border border-zinc-700/50 rounded-lg text-zinc-400 font-bold tracking-widest uppercase mt-2 w-fit text-[10px] shadow-inner">
+                        CODE: {emp.employee_code}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 flex-1 text-xs md:text-sm md:pl-6">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-zinc-600 font-bold uppercase tracking-widest text-[10px]">Contact</span>
+                      <span className="text-zinc-300 font-medium">{emp.phone}</span>
+                      <span className="text-zinc-400">{emp.email}</span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-zinc-600 font-bold uppercase tracking-widest text-[10px]">Dates</span>
+                      <div className="flex flex-col gap-1.5">
+                        <span className="flex items-center justify-between text-zinc-400"><span className="text-zinc-500">DOB:</span> <span className="text-zinc-300 font-medium">{emp.birthdate}</span></span>
+                        <span className="flex items-center justify-between text-zinc-400"><span className="text-zinc-500">Hired:</span> <span className="text-zinc-300 font-medium">{emp.hiredate}</span></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* --- UPGRADED 2x2 ACTION BUTTON GRID --- */}
+                <div className="grid grid-cols-2 gap-2 flex-shrink-0 mt-4 md:mt-0 z-10 pr-2">
+                  <button 
+                    onClick={() => openViewModal(emp)}
+                    className="p-3 text-zinc-400 bg-zinc-800/30 hover:bg-emerald-500/10 hover:text-emerald-400 hover:shadow-[0_0_15px_rgba(16,185,129,0.2)] border border-zinc-700/50 hover:border-emerald-500/50 rounded-xl transition-all flex justify-center items-center"
+                    title="View Details"
+                  >
+                    <FileSearch size={20} />
+                  </button>
+                  <Link 
+                    to={`/employees/edit/${emp.id}`} 
+                    className="p-3 text-zinc-400 bg-zinc-800/30 hover:bg-blue-500/10 hover:text-blue-400 hover:shadow-[0_0_15px_rgba(59,130,246,0.2)] border border-zinc-700/50 hover:border-blue-500/50 rounded-xl transition-all flex justify-center items-center"
+                    title="Edit Employee"
+                  >
+                    <Settings size={20} />
+                  </Link>
+                  
+                  {/* Dynamic Toggle Leave Button */}
+                  <button 
+                    onClick={() => toggleLeaveStatus(emp)}
+                    disabled={isMarkingLeave === emp.id || emp.status === 'resigned'}
+                    className={`p-3 rounded-xl transition-all border flex justify-center items-center ${
+                      emp.status === 'resigned' 
+                        ? 'bg-zinc-900/50 text-zinc-700 border-zinc-800/50 cursor-not-allowed' 
+                        : emp.status === 'on-leave'
+                          ? 'text-zinc-400 bg-zinc-800/30 border-zinc-700/50 hover:bg-green-500/10 hover:text-green-400 hover:shadow-[0_0_15px_rgba(34,197,94,0.2)] hover:border-green-500/50'
+                          : 'text-zinc-400 bg-zinc-800/30 border-zinc-700/50 hover:bg-yellow-500/10 hover:text-yellow-400 hover:shadow-[0_0_15px_rgba(234,179,8,0.2)] hover:border-yellow-500/50'
+                    }`}
+                    title={emp.status === 'on-leave' ? "Return to Active" : "Mark as On Leave"}
+                  >
+                    {isMarkingLeave === emp.id 
+                      ? <Loader2 size={20} className="animate-spin" /> 
+                      : emp.status === 'on-leave' 
+                        ? <CalendarCheck size={20} /> 
+                        : <CalendarMinus size={20} />
+                    }
+                  </button>
+
+                  <button 
+                    onClick={() => openResignModal(emp)}
+                    disabled={isResigning === emp.id || emp.status === 'resigned'}
+                    className={`p-3 rounded-xl transition-all border flex justify-center items-center ${emp.status === 'resigned' ? 'bg-zinc-900/50 text-zinc-700 border-zinc-800/50 cursor-not-allowed' : 'text-zinc-400 bg-zinc-800/30 border-zinc-700/50 hover:bg-red-500/10 hover:text-red-400 hover:shadow-[0_0_15px_rgba(239,68,68,0.2)] hover:border-red-500/50'}`}
+                    title="Mark as Resigned"
+                  >
+                    {isResigning === emp.id ? <Loader2 size={20} className="animate-spin" /> : <UserMinus size={20} />}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* --- CUSTOM RESIGN MODAL --- */}
+      {showResignModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={closeResignModal}></div>
+          <div className="relative w-full max-w-md bg-[#121212] border border-zinc-800 rounded-[2rem] p-8 shadow-2xl animate-in zoom-in-95 fade-in duration-300">
+            <button onClick={closeResignModal} className="absolute top-6 right-6 text-zinc-500 hover:text-white transition-colors">
+              <X size={20} />
+            </button>
+            <div className="flex flex-col items-center text-center gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/20 mb-2">
+                <AlertTriangle className="text-red-500" size={32} />
+              </div>
+              <h2 className="text-xl font-black text-white uppercase tracking-wider">Confirm Resignation</h2>
+              <p className="text-zinc-400 text-sm font-medium tracking-wide">
+                Are you sure you want to mark <span className="text-white font-bold">{employeeToResign?.first_name} {employeeToResign?.last_name}</span> as resigned? This action will update their employment status.
+              </p>
+              <div className="flex w-full gap-3 mt-6">
+                <button onClick={closeResignModal} className="flex-1 py-3.5 rounded-xl font-bold tracking-widest text-xs uppercase bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-all">Cancel</button>
+                <button onClick={confirmResign} className="flex-1 py-3.5 rounded-xl font-bold tracking-widest text-xs uppercase bg-red-600 text-white hover:bg-red-500 shadow-lg shadow-red-600/20 transition-all">Confirm</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- CUSTOM VIEW MODAL --- */}
+      {showViewModal && employeeToView && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md animate-in fade-in duration-300" onClick={closeViewModal}></div>
+          <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-b from-[#121212] to-[#0a0a0a] border border-zinc-800 rounded-[2rem] shadow-[0_16px_40px_0_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.05)] animate-in zoom-in-95 fade-in duration-300 scrollbar-hide flex flex-col">
+            
+            {/* Modal Header */}
+            <div className="p-6 md:p-8 border-b border-zinc-800/80 flex justify-between items-start bg-[#121212]/90 sticky top-0 z-10 backdrop-blur-xl">
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent"></div>
+              <div className="flex flex-col gap-1">
+                <h1 className="text-2xl md:text-3xl font-black text-white tracking-wide uppercase drop-shadow-lg">
+                  {employeeToView.first_name} {employeeToView.last_name}
+                </h1>
+                <p className="text-emerald-500 font-bold text-sm tracking-widest uppercase">
+                  EMPLOYEE CODE: {employeeToView.employee_code}
+                </p>
+              </div>
+              <button onClick={closeViewModal} className="text-zinc-500 hover:text-white transition-colors bg-zinc-900 p-2 rounded-full">
+                <X size={24} />
+              </button>
+            </div>
+
+            {isFetchingDetails ? (
+               <div className="flex flex-col items-center justify-center py-32 gap-4">
+                 <Loader2 className="text-emerald-500 animate-spin" size={48} />
+                 <p className="text-zinc-400 font-bold tracking-widest uppercase text-sm">Loading Details...</p>
+               </div>
+            ) : (
+              <div className="flex flex-col gap-8 p-6 md:p-8">
+                
+                <div className="flex flex-col gap-4">
+                  <h2 className="text-teal-500 font-bold text-sm md:text-base tracking-widest uppercase border-b border-zinc-800/80 pb-3">
+                    User Account
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <ViewField label="Username" value={employeeToView.username} />
+                    <ViewField label="Email Address" value={employeeToView.email} />
+                    <ViewField label="Password" value="••••••••" />
+                    <ViewField label="System Role" value="Employee" />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-4">
+                  <h2 className="text-teal-500 font-bold text-sm md:text-base tracking-widest uppercase border-b border-zinc-800/80 pb-3">
+                    Employee Details
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <ViewField label="First Name" value={employeeToView.first_name} />
+                    <ViewField label="Middle Name" value={employeeToView.mid_name} />
+                    <ViewField label="Last Name" value={employeeToView.last_name} />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <ViewField label="Phone Number" value={employeeToView.phone} />
+                    <ViewField label="Address" value={employeeToView.address} />
+                    <ViewField label="Birthdate" value={employeeToView.birthdate} />
+                    <ViewField label="Hire Date" value={employeeToView.hiredate} />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-4">
+                  <h2 className="text-teal-500 font-bold text-sm md:text-base tracking-widest uppercase border-b border-zinc-800/80 pb-3">
+                    Position & Compensation
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <ViewField label="Department" value={employeeToView.department} />
+                    <ViewField label="Position" value={employeeToView.role} />
+                    <ViewField label="Employment Type" value={employeeToView.employment_type || 'Full-Time'} />
+                    <ViewField label="Basic Salary" value={employeeToView.basic_salary ? `₱${employeeToView.basic_salary}` : '0.00'} />
+                  </div>
+                </div>
+
+                {/* Upgraded Attendance Section matching Home.jsx */}
+                <div className="flex flex-col gap-4 mt-2">
+                  <button 
+                    onClick={() => toggleAttendance(employeeToView.id)}
+                    className="w-full flex items-center justify-between bg-zinc-900/40 border border-zinc-800/80 hover:border-teal-500/50 hover:bg-zinc-800/80 transition-all rounded-2xl p-5 shadow-inner"
+                  >
+                    <div className="flex items-center gap-3">
+                      <CalendarClock className="text-teal-500" size={22} />
+                      <span className="text-sm font-black text-white tracking-[0.1em] uppercase">Recent Attendance</span>
+                    </div>
+                    {showAttendance ? <ChevronUp className="text-zinc-400" size={20} /> : <ChevronDown className="text-zinc-400" size={20} />}
+                  </button>
+
+                  {showAttendance && (
+                    <div className="bg-[#0a0a0a]/80 backdrop-blur-md border border-zinc-800/80 rounded-2xl p-5 md:p-6 animate-in slide-in-from-top-2 fade-in duration-300">
+                      {isFetchingAttendance ? (
+                        <div className="flex justify-center py-8">
+                          <Loader2 className="text-teal-500 animate-spin" size={32} />
+                        </div>
+                      ) : (
+                        <div className="flex flex-col w-full">
+                          
+                          {/* Upgraded Table Header */}
+                          <div className="grid grid-cols-4 gap-2 md:gap-4 px-4 py-3 mb-4 bg-zinc-900/40 border border-zinc-800/80 rounded-xl text-[10px] font-black text-zinc-300 uppercase tracking-[0.15em] shadow-inner items-center">
+                            <span className="pl-2">Date</span>
+                            <span>Time In</span>
+                            <span>Time Out</span>
+                            <span>Status</span>
+                          </div>
+                          
+                          <div className="flex flex-col gap-3">
+                            {attendanceRecords.length === 0 ? (
+                              <span className="text-zinc-500 text-sm italic px-4">No recent attendance found.</span>
+                            ) : (
+                              attendanceRecords.map((record) => (
+                                <div key={record.id} className="group grid grid-cols-4 gap-2 md:gap-4 items-center bg-[#121212] border border-zinc-800/80 hover:border-teal-500/50 hover:-translate-y-1 hover:shadow-[0_8px_30px_-4px_rgba(20,184,166,0.15)] transition-all duration-300 rounded-xl p-3 relative overflow-hidden text-xs md:text-sm">
+                                  
+                                  {/* Subtle Left Border Glow */}
+                                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${record.status === 'Present' ? 'bg-green-500' : record.status === 'Late' ? 'bg-yellow-500' : 'bg-red-500'} opacity-20 group-hover:opacity-100 transition-opacity`}></div>
+
+                                  <div className="flex items-center gap-3 pl-2">
+                                    <div className="hidden sm:flex w-8 h-8 rounded-lg bg-teal-500/10 items-center justify-center border border-teal-500/20 text-teal-400 group-hover:bg-teal-500 group-hover:text-white transition-colors shadow-inner flex-shrink-0">
+                                      <CalendarClock size={14} />
+                                    </div>
+                                    <span className="font-black text-white tracking-wider drop-shadow-sm truncate">{record.date}</span>
+                                  </div>
+
+                                  <span className="text-zinc-300 font-medium truncate">{record.time_in}</span>
+                                  <span className="text-zinc-300 font-medium truncate">{record.time_out}</span>
+
+                                  <div className="flex items-center">
+                                    <span className={`px-2.5 py-1 rounded-md text-[9px] font-black tracking-[0.1em] uppercase border shadow-inner ${getStatusStyle(record.status)} inline-block truncate`}>
+                                      {record.status}
+                                    </span>
+                                  </div>
+
+                                </div>
+                              ))
+                            )}
+                          </div>
+
+                          <div className="pt-6 mt-6 border-t border-zinc-800/80 flex justify-end">
+                            <Link 
+                              to={`/employees/attendance/${employeeToView.id}`}
+                              className="flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/30 hover:border-indigo-500 hover:bg-indigo-500 hover:text-white hover:shadow-[0_0_15px_rgba(99,102,241,0.3)] transition-all rounded-xl px-5 py-3 text-indigo-400 group/btn"
+                            >
+                              <CalendarDays size={18} />
+                              <span className="text-xs font-black tracking-widest uppercase">View Full History</span>
+                            </Link>
+                          </div>
+
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+};
+
+export default EmployeeList;

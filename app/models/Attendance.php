@@ -15,7 +15,12 @@ class Attendance {
     public function tapOut($employeeID) {
         $this->db->query("CALL employeeTapOut(:id)");
         $this->db->bind(':id', $employeeID);
-        return $this->db->execute();
+
+        if (!$this->db->execute()) {
+            throw new Exception("Database failed to execute stored procedure.");
+        }
+
+        return true;
     }
 
     public function getAttendanceHistory($employeeID) {

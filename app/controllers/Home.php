@@ -5,7 +5,6 @@ class Home extends Controller
     {
         $this->userModel = $this->model('User');
         $this->attendanceModel = $this->model('Attendance'); // for attendance
-
     }
 
     public function index() {
@@ -69,7 +68,7 @@ class Home extends Controller
                 $this->attendanceModel->tapOut($employeeId);
                 $msg = ['status' => 'success', 'response' => 'Tapped out successfully!'];
             } catch (Exception $e) {
-                $msg = ['status' => 'error', 'response' => 'Tap out failed.'];
+                $msg = ['status' => 'error', 'response' => 'Tap out failed: ' . $e->getMessage()];
             }
 
             return $this->handleResponse($msg, 200, 'home');

@@ -1,7 +1,9 @@
 <?php
 class EmployeeList extends Controller {
     public function __construct(){
-        // 1. Dual-compatible Admin check
+        // CORS and OPTIONS are handled in public/index.php
+
+        // Dual-compatible Admin check
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             if ($this->isApiRequest()) {
                 $this->sendJson(['status' => 'error', 'response' => 'Unauthorized: Admin access required'], 403);
@@ -26,59 +28,84 @@ class EmployeeList extends Controller {
             'current_user_id' => $_SESSION['User_id']
         ];
 
-        // 2. Automatically returns JSON if Accept header is present
         return $this->handleResponse($data, 200, 'employeeList');
     }
 
     public function add() {
-        $data = [
-            'title' => 'Register New Employee'
-        ];
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $inputData = json_decode(file_get_contents("php://input"), true) ?? $_POST;
 
+            // Hash password before sending to model as per your model comment
+            if (!empty($inputData['password'])) {
+                $inputData['password'] = password_hash($inputData['password'], PASSWORD_DEFAULT);
+            }
+
+            // Call the correct method name found in your User.php
+            if ($this->userModel->insertFullEmployee($inputData)) {
+                if ($this->isApiRequest()) {
+                    return $this->handleResponse(['status' => 'success', 'response' => 'Employee added successfully'], 201);
+                } else {
+                    $_SESSION['flash_success'] = "Employee added successfully.";
+                    redirect('EmployeeList');
+                    exit();
+                }
+            } else {
+                if ($this->isApiRequest()) {
+                    return $this->handleResponse(['status' => 'error', 'response' => 'Failed to add employee'], 500);
+                }
+            }
+        }
+
+        $data = ['title' => 'Register New Employee'];
         return $this->handleResponse($data, 200, 'adminViews/addUser');
     }
 
     public function getDeptName($deptId): string{
         switch ($deptId){
-            case '1':
-                $deptName =  "Creative & Production";
-                break;
-            case '2':
-                $deptName = "Content & Social Media";
-                break;
-            case '3':
-                $deptName = "Accounts & Client Services";
-                break;
-            case '4':
-                $deptName = "Operations & Technology";
-                break;
-            default:
-                $deptName = "ERROR";
-                break;
+            case '1': return "Creative & Production";
+            case '2': return "Content & Social Media";
+            case '3': return "Accounts & Client Services";
+            case '4': return "Operations & Technology";
+            default: return "ERROR";
         }
-        return $deptName;
     }
 
     public function delete($code) {
-        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            if ($this->userModel->resignEmployee($code)) {
-                // 3. Handle success for both frontend types
-                if ($this->isApiRequest()) {
-                    return $this->handleResponse(['status' => 'success', 'response' => 'Employee status updated to Resigned.'], 200);
-                } else {
-                    $_SESSION['flash_success'] = "Employee status updated to Resigned.";
-                    redirect('EmployeeList');
-                    exit();
-                }
+        $method = $_SERVER['REQUEST_METHOD'];
+
+        // 1. Validate the Request Method
+        // React typically uses DELETE, while legacy forms use POST
+        if ($method !== 'POST' && $method !== 'DELETE') {
+            if ($this->isApiRequest()) {
+                return $this->handleResponse(['status' => 'error', 'response' => 'Method Not Allowed'], 405);
+            }
+            return;
+        }
+
+        // 2. Call the Model Method
+        // Uses the existing resignEmployee logic from your User model
+        if ($this->userModel->resignEmployee($code)) {
+            if ($this->isApiRequest()) {
+                // Return 200 OK with a success message for React
+                return $this->handleResponse([
+                    'status' => 'success',
+                    'response' => 'Employee status updated to Resigned.',
+                    'employee_code' => $code
+                ], 200);
             } else {
-                // 4. Handle failure for both frontend types
-                if ($this->isApiRequest()) {
-                    return $this->handleResponse(['status' => 'error', 'response' => 'Failed to update employee status.'], 400);
-                } else {
-                    $_SESSION['flash_error'] = "Failed to update employee status.";
-                    redirect('EmployeeList');
-                    exit();
-                }
+                $_SESSION['flash_success'] = "Employee status updated to Resigned.";
+                redirect('EmployeeList');
+                exit();
+            }
+        } else {
+            // 3. Handle Failure
+            if ($this->isApiRequest()) {
+                // Return 400 Bad Request if the employee code is invalid or DB fails
+                return $this->handleResponse(['status' => 'error', 'response' => 'Failed to update employee status.'], 400);
+            } else {
+                $_SESSION['flash_error'] = "Failed to update employee status.";
+                redirect('EmployeeList');
+                exit();
             }
         }
     }

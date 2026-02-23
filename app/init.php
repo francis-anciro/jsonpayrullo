@@ -1,6 +1,7 @@
 <?php
-session_start();
-require_once "config/config.php";
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}require_once "config/config.php";
 require_once "lib/functions.php";
 require_once "core/App.php";
 require_once "core/Controller.php";

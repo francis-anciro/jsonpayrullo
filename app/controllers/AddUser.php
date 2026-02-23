@@ -1,59 +1,76 @@
 <?php
 class AddUser extends Controller {
     public function __construct() {
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            if ($this->isApiRequest()) {
+                return $this->handleResponse(['status' => 'error', 'response' => 'Admin access required'], 403);
+            }
+            redirect('home');
+            exit();
+        }
         $this->userModel = $this->model('User');
     }
+
     public function index() {
         $data = ['title' => 'Register New Employee'];
-        $this->view('adminViews/addUser', $data);
+        // handleResponse allows React to get the title/meta info if needed as JSON
+        return $this->handleResponse($data, 200, 'adminViews/addUser');
     }
+
     public function addUser() {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $deptId = $_POST['Department_id'];
+            $inputData = json_decode(file_get_contents("php://input"), true) ?? $_POST;
 
-            // Generate code using your existing helper function
+            $deptId = $inputData['Department_id'] ?? $inputData['department_id'] ?? null;
+
+            if (!$deptId) {
+                return $this->handleResponse(['status' => 'error', 'response' => 'Department ID is required'], 400);
+            }
+
             $employeeCode = $this->generateEmployeeCode($deptId);
-            $allocatedDays = $this->getLeaveAllocationByType($_POST['leave_type_id']);
+            $leaveTypeId = $inputData['leave_type_id'] ?? 1;
+            $allocatedDays = $this->getLeaveAllocationByType($leaveTypeId);
 
             $data = [
-                'username'        => trim($_POST['username']),
-                'email'           => trim($_POST['email']),
-                'password'        => password_hash($_POST['password'], PASSWORD_DEFAULT),
-                'role'            => $_POST['role'],
-                'employee_code'   => $employeeCode, // Generated via your helper
-                'first_name'      => trim($_POST['first_name']),
-                'middle_name'     => trim($_POST['middle_name']),
-                'last_name'       => trim($_POST['last_name']),
-                'phone'           => trim($_POST['phone']),
-                'address'         => trim($_POST['address']),
-                'birthdate'       => $_POST['birthdate'],
-                'hire_date'       => $_POST['hire_date'],
-                'employment_status' => $_POST['employment_status'],
-                'department_id'   => $_POST['Department_id'],
-                'position_id'     => $_POST['position_id'],
-                'basic_salary'    => $_POST['basic_salary'],
-                'shift_id'        => $_POST['shift_id'],
-                'leave_type_id'   => $_POST['leave_type_id'],
-                'allocated_days'  => $allocatedDays // Generated via your helper
+                'username'        => trim($inputData['username'] ?? ''),
+                'email'           => trim($inputData['email'] ?? ''),
+                'password'        => password_hash($inputData['password'] ?? 'default123', PASSWORD_DEFAULT),
+                'role'            => $inputData['role'] ?? 'employee',
+                'employee_code'   => $employeeCode,
+                'first_name'      => trim($inputData['first_name'] ?? ''),
+                'middle_name'     => trim($inputData['middle_name'] ?? ''),
+                'last_name'       => trim($inputData['last_name'] ?? ''),
+                'phone'           => trim($inputData['phone'] ?? ''),
+                'address'         => trim($inputData['address'] ?? ''),
+                'birthdate'       => $inputData['birthdate'] ?? null,
+                'hire_date'       => $inputData['hire_date'] ?? date('Y-m-d'),
+                // FIXED: Map to 'employment_type' to match User.php model
+                'employment_type' => $inputData['employment_type'] ?? $inputData['employment_status'] ?? 'Full-time',
+                'department_id'   => $deptId,
+                'position_id'     => $inputData['position_id'] ?? null,
+                'basic_salary'    => $inputData['basic_salary'] ?? 0,
+                'shift_id'        => $inputData['shift_id'] ?? 1,
+                'leave_type_id'   => $leaveTypeId,
+                'allocated_days'  => $allocatedDays
             ];
 
             try {
                 if ($this->userModel->insertFullEmployee($data)) {
-                    $_SESSION['flash_success'] = "Employee added successfully.";
-                    redirect('EmployeeList');
+                    return $this->handleResponse([
+                        'status' => 'success',
+                        'response' => 'Employee added successfully',
+                        'employee_code' => $employeeCode
+                    ], 201);
                 }
             } catch (PDOException $e) {
-                // Check for the specific SQLSTATE 45000 from your SQL SIGNAL
+                $errorMsg = "A system error occurred.";
                 if ($e->getCode() == '45000') {
-                    $data['error'] = "DB Error: " . $e->getMessage();
+                    $errorMsg = "DB Error: " . $e->getMessage();
                 } else if ($e->getCode() == '23000') {
-                    $data['error'] = "Salary must be between 15,000 and 500,000.";
-                } else {
-                    $data['error'] = "A system error occurred. Please try again.";
+                    $errorMsg = "Salary must be between 15,000 and 500,000.";
                 }
 
-                // Reload the view with the error message and existing input data
-                $this->view('adminViews/addUser', $data);
+                return $this->handleResponse(['status' => 'error', 'response' => $errorMsg], 400);
             }
         }
     }

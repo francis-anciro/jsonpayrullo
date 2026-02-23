@@ -1,6 +1,8 @@
 <?php require APPROOT . '/views/components/head.php'; ?>
 <?php require APPROOT . '/views/components/header.php'; ?>
 <?php require APPROOT . '/views/components/navControl.php'; ?>
+<?php if (!isset($_SESSION['username'])){redirect("login");} ?>
+
 
     <div class="relative flex flex-col items-center p-6 md:p-10 min-h-[calc(100vh-4rem)] overflow-hidden">
 

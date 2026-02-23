@@ -1,5 +1,5 @@
+<!--This file is the view for the login-->
 <?php require 'components/head.php';?>
-
 <div class="flex min-h-[80vh] items-center justify-center px-6 py-12">
     <form action="<?php echo URLROOT;?>/login/auth" method="post"
           class="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-900/50 p-8 shadow-2xl backdrop-blur-sm">

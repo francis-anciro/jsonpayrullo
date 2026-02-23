@@ -1,7 +1,8 @@
+<?php if (!isset($_SESSION['username'])){redirect("login");} ?>
 <?php require 'components/head.php'; ?>
 <?php require 'components/header.php'; ?>
 <?php require 'components/navControl.php'; ?>
-
+<!--THIS IS THE VIEW FOR HOMe-->
     <main class="min-h-[calc(100vh-160px)] bg-zinc-950 px-6 py-8 md:px-12 flex flex-col items-center gap-12">
         <?php if (!empty($data['message'])): ?>
             <div

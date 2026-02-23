@@ -1,4 +1,8 @@
 <?php
+if (!isset($_SESSION['username'])) {
+    redirect("login");
+}
+
 require 'components/head.php';
 require 'components/header.php';
 require 'components/navControl.php';

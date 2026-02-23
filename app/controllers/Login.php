@@ -44,21 +44,22 @@ class Login extends Controller {
                     'response' => 'Account deactivated.'
                 ], 403, 'login');
             }
-
+            $_SESSION['User_id'] = $user->User_ID;
+            $_SESSION['Employee_ID'] = $user->Employee_ID; // CRITICAL for Home.php
+            $_SESSION['username'] = $user->username;
+            $_SESSION['role'] = $user->role;
             // 5. Success Logic
             if (!$this->isApiRequest()) {
-                // Web browser: Start session and redirect
-                $_SESSION['User_id'] = $user->User_ID;
-                $_SESSION['username'] = $user->username;
-                $_SESSION['role'] = $user->role;
+                // Web browser: redirect
                 redirect('home');
             } else {
-                // API: Return data (usually with a token)
+                // API: Return data
                 $this->sendJson([
                     'status' => 'success',
                     'user' => [
                         'id' => $user->User_ID,
-                        'username' => $user->username
+                        'username' => $user->username,
+                        'employee_id' => $user->Employee_ID
                     ]
                 ]);
             }

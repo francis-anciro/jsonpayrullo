@@ -65,23 +65,24 @@ const EmployeeList = () => {
       const rawUsers = data.users || (Array.isArray(data) ? data : []);
 
       if (rawUsers.length > 0) {
+        // Inside fetchEmployees function in EmployeeList.jsx
         const mappedUsers = rawUsers.map(u => ({
           id: u.User_ID || u.id,
-          employee_code: u.Employee_ID || u.employee_code || 'N/A',
+          employee_code: u.employee_code || 'N/A',
           first_name: u.first_name || u.username || 'Unknown',
-          mid_name: u.mid_name || '',
+          mid_name: u.middle_name || '',
           last_name: u.last_name || '',
-          role: u.position || u.role || 'Employee',
+          role: u.role || 'Employee',
           department: u.department_name || 'General',
           phone: u.phone || 'N/A',
           address: u.address || 'N/A',
           birthdate: u.birthdate || 'N/A',
-          hiredate: u.hiredate || 'N/A',
+          hiredate: u.hire_date || 'N/A',
           email: u.email || 'N/A',
           username: u.username || 'N/A',
-          status: u.status || 'present',
-          employment_type: u.employment_type || 'Full-Time',
-          basic_salary: u.basic_salary || '0.00'
+          status: u.is_active === 1 ? 'present' : 'resigned',
+          basic_salary: u.basic_salary || '0.00', // Ensure this matches the DB key          // CAPTURE THE REAL HISTORY ARRAY HERE
+          attendance_history: u.attendance_history || []
         }));
 
         setMasterEmployees(mappedUsers);
@@ -126,17 +127,37 @@ const EmployeeList = () => {
 
   const toggleLeaveStatus = async (emp) => {
     setIsMarkingLeave(emp.id);
-    const newStatus = emp.status === 'on-leave' ? 'present' : 'on-leave';
+
+    // 1. Determine the next status based on current state
+    const nextStatus = emp.status === 'on_leave' ? 'active' : 'on_leave';
+    const code = emp.employee_code;
 
     try {
-      // Mocked delay for UI feel until backend leave toggle is built
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // 2. Send the real API request
+      const response = await fetch(`http://localhost/JSONPayrullo/EmployeeList/toggleLeave/${code}`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: nextStatus }), // Sending "on_leave" or "active"
+        credentials: 'include'
+      });
 
-      const updatedMaster = masterEmployees.map(e => e.id === emp.id ? { ...e, status: newStatus } : e);
-      setMasterEmployees(updatedMaster);
-      setEmployees(prev => prev.map(e => e.id === emp.id ? { ...e, status: newStatus } : e));
+      const result = await response.json();
+
+      if (response.ok && result.status === 'success') {
+        // 3. Update local state to reflect the change immediately
+        const updateList = (list) => list.map(e => e.id === emp.id ? { ...e, status: nextStatus } : e);
+
+        setMasterEmployees(prev => updateList(prev));
+        setEmployees(prev => updateList(prev));
+      } else {
+        alert(result.response || "Failed to update leave status");
+      }
     } catch (error) {
       console.error("Toggle Leave Error:", error);
+      alert("Network error. Please check your connection.");
     } finally {
       setIsMarkingLeave(null);
     }
@@ -155,25 +176,24 @@ const EmployeeList = () => {
   const confirmResign = async () => {
     if (!employeeToResign) return;
 
-    // PHP Controller uses $code
-    const code = employeeToResign.employee_code;
-    const id = employeeToResign.id;
-    setIsResigning(id);
-    closeResignModal();
+    const code = employeeToResign.employee_code; // Param for the URL
+    setIsResigning(employeeToResign.id);
+    setShowResignModal(false);
 
     try {
-      // Hit your PHP Delete method via POST
-      const response = await fetch(`http://localhost/JSONPayrullo/public/EmployeeList/delete/${code}`, {
+      const response = await fetch(`http://localhost/JSONPayrullo/EmployeeList/delete/${code}`, {
         method: 'POST',
         headers: { 'Accept': 'application/json' },
         credentials: 'include'
       });
+
       const result = await response.json();
 
-      if (result.status === 'success') {
-        const updatedMaster = masterEmployees.map(emp => emp.id === id ? { ...emp, status: 'resigned' } : emp);
-        setMasterEmployees(updatedMaster);
-        setEmployees(prev => prev.map(emp => emp.id === id ? { ...emp, status: 'resigned' } : emp));
+      if (response.ok && result.status === 'success') {
+        // Update local state to gray out the card (status: 'resigned')
+        setEmployees(prev => prev.map(emp =>
+            emp.employee_code === code ? { ...emp, status: 'resigned' } : emp
+        ));
       } else {
         alert(result.response || "Failed to resign employee");
       }
@@ -207,29 +227,31 @@ const EmployeeList = () => {
     setShowAttendance(false);
   };
 
-  const toggleAttendance = async (empId) => {
+  const toggleAttendance = (empId) => {
     if (showAttendance) {
       setShowAttendance(false);
       return;
     }
 
-    setShowAttendance(true);
-    setIsFetchingAttendance(true);
+    // Find employee in existing state
+    const emp = employees.find(e => e.id === empId);
 
-    try {
-      await new Promise(resolve => setTimeout(resolve, 600));
+    if (emp && emp.attendance_history) {
+      // Slice to 5 and map to the format expected by your JSX
+      const formattedRecords = emp.attendance_history.slice(0, 5).map(record => ({
+        id: record.Attendance_ID,
+        attendance_date: record.attendance_date, // Match backend key
+        time_in: record.time_in,
+        time_out: record.time_out || '--:--',
+        worked_hours: record.worked_hours, // Captured for display
+        status: record.status // Use the raw status from DB ('late', 'present', etc.)
+      }));
 
-      setAttendanceRecords([
-        { id: 1, date: '2026-02-21', time_in: '08:05 AM', time_out: '05:00 PM', status: 'Present' },
-        { id: 2, date: '2026-02-20', time_in: '08:00 AM', time_out: '05:15 PM', status: 'Present' },
-        { id: 3, date: '2026-02-19', time_in: '09:30 AM', time_out: '06:00 PM', status: 'Late' },
-        { id: 4, date: '2026-02-18', time_in: '-', time_out: '-', status: 'Absent' },
-        { id: 5, date: '2026-02-17', time_in: '07:55 AM', time_out: '05:00 PM', status: 'Present' },
-      ]);
-    } catch (error) {
-      console.error("Failed to fetch attendance:", error);
-    } finally {
-      setIsFetchingAttendance(false);
+      setAttendanceRecords(formattedRecords);
+      setShowAttendance(true);
+    } else {
+      setAttendanceRecords([]);
+      setShowAttendance(true);
     }
   };
 
@@ -369,7 +391,8 @@ const EmployeeList = () => {
                             <FileSearch size={20} />
                           </button>
                           <Link
-                              to={`/employees/edit/${emp.id}`}
+                              // Change emp.id to emp.employee_code
+                                to={`/employees/edit/${emp.employee_code}`}
                               className="p-3 text-zinc-400 bg-zinc-800/30 hover:bg-blue-500/10 hover:text-blue-400 hover:shadow-[0_0_15px_rgba(59,130,246,0.2)] border border-zinc-700/50 hover:border-blue-500/50 rounded-xl transition-all flex justify-center items-center"
                               title="Edit Employee"
                           >

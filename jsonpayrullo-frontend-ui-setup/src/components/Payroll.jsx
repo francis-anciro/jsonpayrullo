@@ -17,21 +17,29 @@ const Payroll = () => {
     fetchPeriods();
   }, []);
 
+  // Inside Payroll.jsx
+
   const fetchPeriods = async () => {
     setIsLoading(true);
     try {
-      // TODO: BACKEND FETCH READY
-      // const res = await fetch('/api/payroll/periods');
-      // const data = await res.json();
-      // setPeriods(data);
+      const response = await fetch('http://localhost/JSONPayrullo/Payrolls/index', {
+        headers: { 'Accept': 'application/json' },
+        credentials: 'include'
+      });
 
-      await new Promise(resolve => setTimeout(resolve, 600)); // Simulate delay
-      
-      setPeriods([
-        { id: 1, period_string: 'Feb 1 – Feb 15, 2026', pay_date: 'Feb 20, 2026', employee_count: 0, status: 'open' },
-        { id: 2, period_string: 'Jan 16 – Jan 31, 2026', pay_date: 'Feb 5, 2026', employee_count: 45, status: 'processed' },
-        { id: 3, period_string: 'Jan 1 – Jan 15, 2026', pay_date: 'Jan 20, 2026', employee_count: 44, status: 'released' },
-      ]);
+      const result = await response.json();
+
+      if (response.ok && result.periods) {
+        // Map DB keys to Frontend keys and format dates
+        const mappedPeriods = result.periods.map(p => ({
+          id: p.PayrollPeriod_ID,
+          period_string: `${formatDate(p.period_start)} – ${formatDate(p.period_end, true)}`,
+          pay_date: formatDate(p.pay_date, true),
+          employee_count: p.employee_count,
+          status: p.status
+        }));
+        setPeriods(mappedPeriods);
+      }
     } catch (error) {
       console.error("Fetch error:", error);
     } finally {
@@ -43,17 +51,42 @@ const Payroll = () => {
     e.preventDefault();
     setIsCreating(true);
     try {
-      // TODO: BACKEND POST READY
-      // await fetch('/api/payroll/periods', { method: 'POST', body: JSON.stringify(newPeriod) });
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      setShowNewModal(false);
-      fetchPeriods(); // Refresh list after creation
+      const response = await fetch('http://localhost/JSONPayrullo/Payrolls/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          period_start: newPeriod.start_date,
+          period_end: newPeriod.end_date,
+          pay_date: newPeriod.pay_date
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.status === 'success') {
+        setShowNewModal(false);
+        setNewPeriod({ start_date: '', end_date: '', pay_date: '' }); // Clear form
+        fetchPeriods(); // Refresh list
+      } else {
+        alert(result.response || "Failed to create period");
+      }
     } catch (error) {
       console.error("Create error:", error);
+      alert("Network error. Check server connection.");
     } finally {
       setIsCreating(false);
     }
+  };
+
+// Helper function for UI date formatting
+  const formatDate = (dateStr, includeYear = false) => {
+    const options = { month: 'short', day: 'numeric' };
+    if (includeYear) options.year = 'numeric';
+    return new Date(dateStr).toLocaleDateString('en-US', options);
   };
 
   const getStatusStyle = (status) => {

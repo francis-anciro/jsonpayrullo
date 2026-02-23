@@ -19,73 +19,188 @@ const PeriodDetail = () => {
   const [newAllowance, setNewAllowance] = useState({ name: '', amount: '' });
   const [newDeduction, setNewDeduction] = useState({ name: '', amount: '' });
 
+// Helper for Date Formatting
+  const formatDate = (dateStr, includeYear = false) => {
+    if (!dateStr) return '---';
+    const options = { month: 'short', day: 'numeric' };
+    if (includeYear) options.year = 'numeric';
+    return new Date(dateStr).toLocaleDateString('en-US', options);
+  };
+  const openManageModal = (run) => {
+    // Directly set the run object from your payrollRuns state
+    setActiveEmp(run);
+    setShowManageModal(true);
+  };
+// 1. Fetch Period and Payroll Runs on Mount
+  // 1. Fetch Period and Payroll Runs on Mount
+  const fetchPeriodDetails = async () => {
+    try {
+      const response = await fetch(`http://localhost/JSONPayrullo/Payrolls/details/${id}`, {
+        headers: { 'Accept': 'application/json' },
+        credentials: 'include'
+      });
+      const result = await response.json();
+
+      if (response.ok) {
+        // Set Period Header Info from Database
+        setPeriodInfo({
+          id: result.period.PayrollPeriod_ID,
+          period_string: `${formatDate(result.period.period_start)} – ${formatDate(result.period.period_end, true)}`,
+          pay_date: formatDate(result.period.pay_date, true),
+          status: result.period.status
+        });
+
+        // Map Payroll Runs and ensure arrays exist for mapping
+        const mappedRuns = result.runs.map(run => ({
+          id: run.PayrollRun_ID,
+          emp_name: run.full_name,
+          code: run.employee_code,
+          dept: run.department,
+          role: run.position,
+          basic: parseFloat(run.basic_pay || 0),
+          ot: parseFloat(run.overtime_pay || 0),
+          gross: parseFloat(run.gross_pay || 0),
+          net: parseFloat(run.net_pay || 0),
+          allowances: run.allowances || [], // Null safety fallback
+          deductions: run.deductions || []  // Null safety fallback
+        }));
+
+        setPayrollRuns(mappedRuns);
+
+        // CRITICAL: If a modal is open, refresh the activeEmp data from the new list
+// Inside fetchPeriodDetails after setPayrollRuns(mappedRuns)
+        setActiveEmp(prev => {
+          if (!prev) return null;
+          // Finds the updated version of the current employee in the new list
+          return mappedRuns.find(r => r.id === prev.id) || prev;
+        });
+      }
+    } catch (error) {
+      console.error("Fetch Details Error:", error);
+    }
+  };
+
   useEffect(() => {
     setIsMounted(true);
-    // Simulate initial fetch of Period Data
-    setPeriodInfo({
-      id: id,
-      period_string: 'Feb 1 – Feb 15, 2026',
-      pay_date: 'Feb 20, 2026',
-      status: 'open' // Change to 'processed' to see the release button
-    });
+    fetchPeriodDetails();
   }, [id]);
 
+// 2. Trigger Backend Payroll Generation
   const handleGeneratePayroll = async () => {
     setIsGenerating(true);
     try {
-      // TODO: BACKEND READY - Trigger backend payroll engine
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      setPayrollRuns([
-        { 
-          id: 101, emp_name: 'John Doe', code: 'EMP-001', dept: 'Human Resources', role: 'HR Manager',
-          basic: 37500, ot: 0, allowances: [{ name: 'Rice Subsidy', amount: 1500 }], 
-          deductions: [{ name: 'Tax', amount: 3000 }, { name: 'SSS', amount: 500 }],
-          gross: 39000, net: 35500
-        },
-        { 
-          id: 102, emp_name: 'Jane Smith', code: 'EMP-002', dept: 'IT', role: 'Software Engineer',
-          basic: 45000, ot: 2500, allowances: [], 
-          deductions: [{ name: 'Tax', amount: 4500 }],
-          gross: 47500, net: 43000
-        }
-      ]);
-      setPeriodInfo(prev => ({ ...prev, status: 'processed' }));
+      const response = await fetch(`http://localhost/JSONPayrullo/Payrolls/generate/${id}`, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json' },
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        await fetchPeriodDetails(); // Refresh list to show new runs
+      }
     } catch (error) {
-      console.error(error);
+      console.error("Generation Error:", error);
     } finally {
       setIsGenerating(false);
     }
   };
+// --- ADD THESE MISSING FUNCTIONS ---
 
-  const openManageModal = (emp) => {
-    setActiveEmp({ ...emp }); // Clone to edit
-    setShowManageModal(true);
+  // 1. Release Payroll Logic
+  const handleReleasePayroll = async () => {
+    if (!window.confirm("Release and lock this payroll period? This will finalize all records.")) return;
+
+    try {
+      const response = await fetch(`http://localhost/JSONPayrullo/Payrolls/release/${id}`, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json' },
+        credentials: 'include'
+      });
+      if (response.ok) await fetchPeriodDetails(); // Refresh UI
+    } catch (error) {
+      console.error("Release Error:", error);
+    }
   };
 
-  // Add Allowance/Deduction Logic (Local State for now)
-  const addAllowance = () => {
-    if (!newAllowance.name || !newAllowance.amount) return;
-    setActiveEmp(prev => ({
-      ...prev,
-      allowances: [...prev.allowances, { name: newAllowance.name, amount: parseFloat(newAllowance.amount) }]
-    }));
-    setNewAllowance({ name: '', amount: '' });
+  // 2. Calculation Functions for the Modal Footer
+  const calcGross = () => {
+    if (!activeEmp) return 0;
+    const allowancesTotal = (activeEmp.allowances || []).reduce(
+        (acc, curr) => acc + (parseFloat(curr.amount) || 0), 0
+    );
+    return (parseFloat(activeEmp.basic) || 0) + (parseFloat(activeEmp.ot) || 0) + allowancesTotal;
   };
 
-  const addDeduction = () => {
-    if (!newDeduction.name || !newDeduction.amount) return;
-    setActiveEmp(prev => ({
-      ...prev,
-      deductions: [...prev.deductions, { name: newDeduction.name, amount: parseFloat(newDeduction.amount) }]
-    }));
-    setNewDeduction({ name: '', amount: '' });
+  const calcTotalDeductions = () => {
+    if (!activeEmp) return 0;
+    return (activeEmp.deductions || []).reduce(
+        (acc, curr) => acc + (parseFloat(curr.amount) || 0), 0
+    );
   };
 
-  // Live Recalculation inside Modal
-  const calcGross = () => activeEmp.basic + activeEmp.ot + activeEmp.allowances.reduce((acc, curr) => acc + curr.amount, 0);
-  const calcTotalDeductions = () => activeEmp.deductions.reduce((acc, curr) => acc + curr.amount, 0);
   const calcNet = () => calcGross() - calcTotalDeductions();
+// 3. Add Allowance via API
+  // --- Inside PeriodDetail.jsx ---
+
+// 3. Add Allowance via API
+  const addAllowance = async () => {
+    if (!newAllowance.name || !newAllowance.amount) return;
+
+    try {
+      const response = await fetch(`http://localhost/JSONPayrullo/Payrolls/addAllowance`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          run_id: activeEmp.id,
+          name: newAllowance.name,
+          amount: newAllowance.amount
+        }),
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        setNewAllowance({ name: '', amount: '' });
+        // Re-fetch all to get synced totals from DB
+        await fetchPeriodDetails();
+      }
+    } catch (error) {
+      console.error("Add Allowance Error:", error);
+    }
+  };
+
+// 4. Add Deduction via API
+  const addDeduction = async () => {
+    if (!newDeduction.name || !newDeduction.amount) return;
+
+    try {
+      const response = await fetch(`http://localhost/JSONPayrullo/Payrolls/addDeduction`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          run_id: activeEmp.id,
+          name: newDeduction.name,
+          amount: newDeduction.amount
+        }),
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        setNewDeduction({ name: '', amount: '' });
+        // Re-fetch all to get synced totals from DB
+        await fetchPeriodDetails();
+      }
+    } catch (error) {
+      console.error("Add Deduction Error:", error);
+    }
+  };
+  // Add these back to prevent the crash
+// Place these inside the PeriodDetail component, above the return statement
 
   return (
     <div className="relative flex flex-col items-center p-6 md:p-10 min-h-[calc(100vh-4rem)] overflow-hidden">
@@ -140,7 +255,7 @@ const PeriodDetail = () => {
           ) : isGenerating ? (
              <div className="flex flex-col items-center justify-center flex-1 gap-4 py-20">
                <Loader2 className="text-violet-500 animate-spin" size={48} />
-               <p className="text-zinc-400 font-bold tracking-widest uppercase text-sm">Calculating Algorithms...</p>
+               <p className="text-zinc-400 font-bold tracking-widest uppercase text-sm">Calculating Salary...</p>
              </div>
           ) : (
             <div className="w-full overflow-x-auto scrollbar-hide">
@@ -166,8 +281,8 @@ const PeriodDetail = () => {
                         <span className="text-sm text-zinc-300 truncate">{run.dept}</span>
                         <span className="text-xs text-violet-400 uppercase truncate">{run.role}</span>
                       </div>
-                      <span className="text-zinc-300 font-medium">₱{run.basic.toLocaleString()}</span>
-                      <span className="text-green-400 font-bold">₱{run.net.toLocaleString()}</span>
+                      <span className="text-zinc-300 font-medium">₱ {run.basic.toLocaleString()}</span>
+                      <span className="text-green-400 font-bold">₱ {run.net.toLocaleString()}</span>
                       
                       <div className="col-span-3 flex justify-end gap-2">
                         <button onClick={() => openManageModal(run)} className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg text-xs font-bold uppercase tracking-wider transition-colors">
@@ -184,11 +299,14 @@ const PeriodDetail = () => {
 
         {/* BOTTOM RELEASE BUTTON */}
         {periodInfo.status === 'processed' && payrollRuns.length > 0 && (
-           <div className="flex justify-end mt-4 animate-in fade-in slide-in-from-bottom-4">
-             <button className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-8 py-4 rounded-xl font-black text-sm tracking-[0.2em] uppercase transition-colors shadow-[0_0_20px_rgba(22,163,74,0.3)]">
-               <CheckCircle2 size={20} /> Release Payroll
-             </button>
-           </div>
+            <div className="flex justify-end mt-4 animate-in fade-in slide-in-from-bottom-4">
+              <button
+                  onClick={handleReleasePayroll} // ADD THIS LINE
+                  className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-8 py-4 rounded-xl font-black text-sm tracking-[0.2em] uppercase transition-colors shadow-[0_0_20px_rgba(22,163,74,0.3)]"
+              >
+                <CheckCircle2 size={20} /> Release Payroll
+              </button>
+            </div>
         )}
 
       </div>
@@ -226,13 +344,17 @@ const PeriodDetail = () => {
                   <input type="number" placeholder="Amt" className="w-24 bg-[#121212] border border-zinc-800 rounded-lg px-3 text-sm text-white outline-none" value={newAllowance.amount} onChange={e => setNewAllowance({...newAllowance, amount: e.target.value})} />
                   <button onClick={addAllowance} className="bg-violet-600 hover:bg-violet-500 text-white p-2 rounded-lg"><PlusCircle size={20}/></button>
                 </div>
+                {/* --- UPDATED ALLOWANCES MAPPING --- */}
                 <div className="flex flex-col gap-2 mt-2">
-                  {activeEmp.allowances.map((al, idx) => (
-                    <div key={idx} className="flex justify-between items-center bg-[#121212] p-3 rounded-lg border border-zinc-800/50">
-                      <span className="text-sm text-zinc-300">{al.name}</span>
-                      <span className="text-sm font-bold text-white">+ ₱{al.amount.toLocaleString()}</span>
-                    </div>
+                  {(activeEmp.allowances || []).map((al, idx) => ( // Added || [] for null safety
+                      <div key={idx} className="flex justify-between items-center bg-[#121212] p-3 rounded-lg border border-zinc-800/50">
+                        <span className="text-sm text-zinc-300">{al.name}</span>
+                        <span className="text-sm font-bold text-white">+ ₱{Number(al.amount).toLocaleString()}</span>
+                      </div>
                   ))}
+                  {(!activeEmp.allowances || activeEmp.allowances.length === 0) && (
+                      <p className="text-[10px] text-zinc-600 uppercase font-bold text-center py-4">No Allowances Added</p>
+                  )}
                 </div>
               </div>
 
@@ -250,13 +372,17 @@ const PeriodDetail = () => {
                   <input type="number" placeholder="Amt" className="w-24 bg-[#121212] border border-zinc-800 rounded-lg px-3 text-sm text-white outline-none" value={newDeduction.amount} onChange={e => setNewDeduction({...newDeduction, amount: e.target.value})} />
                   <button onClick={addDeduction} className="bg-red-600 hover:bg-red-500 text-white p-2 rounded-lg"><PlusCircle size={20}/></button>
                 </div>
+                {/* --- UPDATED DEDUCTIONS MAPPING --- */}
                 <div className="flex flex-col gap-2 mt-2">
-                  {activeEmp.deductions.map((ded, idx) => (
-                    <div key={idx} className="flex justify-between items-center bg-[#121212] p-3 rounded-lg border border-red-900/20">
-                      <span className="text-sm text-zinc-300">{ded.name}</span>
-                      <span className="text-sm font-bold text-red-400">- ₱{ded.amount.toLocaleString()}</span>
-                    </div>
+                  {(activeEmp.deductions || []).map((ded, idx) => ( // Added || [] for null safety
+                      <div key={idx} className="flex justify-between items-center bg-[#121212] p-3 rounded-lg border border-red-900/20">
+                        <span className="text-sm text-zinc-300">{ded.name}</span>
+                        <span className="text-sm font-bold text-red-400">- ₱{Number(ded.amount).toLocaleString()}</span>
+                      </div>
                   ))}
+                  {(!activeEmp.deductions || activeEmp.deductions.length === 0) && (
+                      <p className="text-[10px] text-zinc-600 uppercase font-bold text-center py-4">No Deductions Added</p>
+                  )}
                 </div>
               </div>
 

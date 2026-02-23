@@ -14,13 +14,15 @@ const Navbar = () => {
   });
 
   // 2. Fetch user data from localStorage on component mount
+// 2. Fetch user data from localStorage on component mount
+// Navbar.jsx
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       const parsedUser = JSON.parse(storedUser);
       setUser({
         name: parsedUser.username || "Unknown",
-        position: parsedUser.role || "Employee"
+        // Ensure we check for 'role' specifically if 'position' is missing
       });
     }
   }, []);
@@ -108,9 +110,6 @@ const Navbar = () => {
               </div>
               <div className="flex flex-col">
                 <span className="text-xs font-black text-white leading-tight uppercase tracking-wider">{user.name}</span>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-blue-400 leading-tight">
-                {user.position}
-              </span>
               </div>
             </div>
 

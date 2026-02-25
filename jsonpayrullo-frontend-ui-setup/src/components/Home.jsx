@@ -53,7 +53,7 @@ const Home = () => {
   };
 
   const getInitials = (name) => {
-    if (!name || name === "Loading...") return "??";
+    if (!name || name === "Guest" || name === "Loading...") return "??";
     return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
   };
 
@@ -74,8 +74,10 @@ const Home = () => {
     );
   }
 
-  const username = data?.username || "Loading...";
+  // --- DATA MAPPING ---
+  const username = data?.username || "Guest";
   const role = data?.role || "---";
+  const dept = data?.dept || "GENERAL DEPT";
   const attendanceHistory = data?.attendanceHistory || [];
 
   const isTimedIn = attendanceHistory.some(record => isShiftActive(record.time_out));
@@ -155,7 +157,8 @@ const Home = () => {
                   </div>
                   <div className="flex items-center gap-3">
                     <Building2 className="text-zinc-500" size={20} />
-                    <p className="text-zinc-400 font-bold text-base md:text-lg tracking-widest uppercase">{data?.dept || 'GENERAL DEPT'}</p>
+                    {/* Fixed to use the dept variable */}
+                    <p className="text-zinc-400 font-bold text-base md:text-lg tracking-widest uppercase">{dept}</p>
                   </div>
                 </div>
               </div>
@@ -167,7 +170,6 @@ const Home = () => {
                   <h2 className="text-[11px] md:text-xs font-black text-zinc-300 uppercase tracking-[0.15em]">Recent Attendance</h2>
                 </div>
 
-                {/* UPDATED: 5-Column Grid Header */}
                 <div className="grid grid-cols-5 gap-2 md:gap-4 px-3 py-3 mb-3 bg-zinc-900/40 border border-zinc-800/80 rounded-xl text-[10px] font-black text-zinc-300 uppercase tracking-[0.15em] items-center">
                   <span className="pl-2">Date</span>
                   <span>Time In</span>
@@ -178,23 +180,16 @@ const Home = () => {
 
                 <div className="flex flex-col gap-2.5">
                   {attendanceHistory.length > 0 ? attendanceHistory.map((record, idx) => (
-                      /* UPDATED: 5-Column Grid Row */
                       <div key={idx} className="group grid grid-cols-5 gap-2 md:gap-4 items-center bg-[#121212] border border-zinc-800/80 hover:border-blue-500/50 hover:-translate-y-1 transition-all duration-300 rounded-xl p-3 relative text-xs">
-
                         <div className={`absolute left-0 top-0 bottom-0 w-1 ${!isShiftActive(record.time_out) ? 'bg-green-500' : 'bg-yellow-500'} opacity-20 group-hover:opacity-100`}></div>
-
                         <div className="flex items-center gap-2.5 pl-2">
                           <span className="font-black text-white tracking-wider truncate">{record.attendance_date}</span>
                         </div>
-
                         <span className="text-zinc-300 font-medium truncate">{record.time_in}</span>
                         <span className="text-zinc-300 font-medium truncate">{isShiftActive(record.time_out) ? '--:--' : record.time_out}</span>
-
-                        {/* NEW: Display Worked Hours */}
                         <span className="text-zinc-300 font-bold truncate text-blue-400">
                           {!isShiftActive(record.time_out) && record.worked_hours ? `${Number(record.worked_hours).toFixed(2)}` : '--'}
                         </span>
-
                         <div className="flex items-center">
                           <span className={`px-2.5 py-1 rounded-md text-[9px] font-black tracking-[0.1em] uppercase border ${getStatusStyle(record)}`}>
                             {!isShiftActive(record.time_out) ? 'COMPLETE' : 'ACTIVE'}

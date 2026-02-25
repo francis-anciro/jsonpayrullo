@@ -8,47 +8,53 @@ import EditEmployee from './components/EditEmployee';
 import Attendance from './components/Attendance';
 import Payroll from './components/Payroll';             
 import PeriodDetail from './components/PeriodDetail';   
-import Analytics from './components/Analytics'; // <--- IMPORTED REAL ANALYTICS COMPONENT
+import Analytics from './components/Analytics';
 import Footer from './components/Footer'; 
 
 // Placeholder for Page 3
 const Payslip = () => <div className="text-white p-8">Payslip Document View</div>;
+import { Navigate } from 'react-router-dom';
 
+const ProtectedRoute = ({ children }) => {
+  const isAuthenticated = localStorage.getItem('user');
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+};
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/login" element={<Login />} />
+      <Router>
+        <Routes>
+          {/* Public Route */}
+          <Route path="/login" element={<Login />} />
 
-        <Route path="/*" element={
-          <div className="flex flex-col min-h-screen bg-[#0a0a0a] relative">
-            
-            <Navbar />
-            
-            <main className="flex-grow">
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/employees" element={<EmployeeList />} />
-                <Route path="/employees/add" element={<AddEmployee />} />
-                <Route path="/employees/edit/:id" element={<EditEmployee />} /> 
-                <Route path="/employees/attendance/:id" element={<Attendance />} />
-                
-                {/* --- PAYROLL ROUTES --- */}
-                <Route path="/payroll" element={<Payroll />} />
-                <Route path="/payroll/:id" element={<PeriodDetail />} />
-                <Route path="/payroll/payslip/:periodId/:empId" element={<Payslip />} />
-                
-                {/* --- ANALYTICS ROUTE --- */}
-                <Route path="/analytics" element={<Analytics />} />
-              </Routes>
-            </main>
-
-            <Footer />
-
-          </div>
-        } />
-      </Routes>
-    </Router>
+          {/* Protected Routes */}
+          <Route path="/*" element={
+            <ProtectedRoute>
+              <div className="flex flex-col min-h-screen bg-[#0a0a0a] relative">
+                <Navbar />
+                <main className="flex-grow">
+                  <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/employees" element={<EmployeeList />} />
+                    <Route path="/employees/add" element={<AddEmployee />} />
+                    <Route path="/employees/edit/:id" element={<EditEmployee />} />
+                    <Route path="/employees/attendance/:id" element={<Attendance />} />
+                    <Route path="/payroll" element={<Payroll />} />
+                    <Route path="/payroll/:id" element={<PeriodDetail />} />
+                    <Route path="/payroll/payslip/:periodId/:empId" element={<Payslip />} />
+                    <Route path="/analytics" element={<Analytics />} />
+                  </Routes>
+                </main>
+                <Footer />
+              </div>
+            </ProtectedRoute>
+          } />
+        </Routes>
+      </Router>
   );
 }
 

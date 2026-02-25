@@ -19,7 +19,8 @@ class User{
             e.first_name,
             e.last_name,
             e.address,
-            e.basic_salary -- Added basic_salary
+            e.basic_salary,
+            e.employment_status
         FROM users u
         INNER JOIN employees e ON u.User_ID = e.User_ID
     ");

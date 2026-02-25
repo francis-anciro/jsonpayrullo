@@ -1,17 +1,15 @@
 <?php
 class EmployeeList extends Controller {
     public function __construct(){
-        // CORS and OPTIONS are handled in public/index.php
 
-        // Dual-compatible Admin check
-        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-            if ($this->isApiRequest()) {
-                $this->sendJson(['status' => 'error', 'response' => 'Unauthorized: Admin access required'], 403);
-            } else {
-                redirect('home');
-                exit();
-            }
-        }
+//        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+//            if ($this->isApiRequest()) {
+//                $this->sendJson(['status' => 'error', 'response' => 'Unauthorized: Admin access required'], 403);
+//            } else {
+//                redirect('home');
+//                exit();
+//            }
+//        }
         $this->attendanceModel = $this->model('Attendance'); // for attendance
         $this->userModel = $this->model('User');
     }

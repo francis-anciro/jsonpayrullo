@@ -107,4 +107,24 @@ class EmployeeList extends Controller {
             return $this->handleResponse(['status' => 'error', 'response' => 'Update failed.'], 400);
         }
     }
+    public function history($code = null) {
+        if (!$code) {
+            return $this->handleResponse(['status' => 'error', 'response' => 'Employee code required'], 400);
+        }
+
+        // Get Employee_ID from code
+        $employee = $this->userModel->getUserByCode($code);
+
+        if (!$employee) {
+            return $this->handleResponse(['status' => 'error', 'response' => 'Employee not found'], 404);
+        }
+
+        $logs = $this->userModel->getEditLogs($employee->Employee_ID);
+
+        return $this->handleResponse([
+            'status' => 'success',
+            'data'   => $logs
+        ], 200, 'employeeList');
+    }
+
 }

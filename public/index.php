@@ -15,7 +15,7 @@ if ($isApi || $_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     header_remove("Access-Control-Allow-Origin");
 
     // 2. SET SPECIFIC ORIGIN (No wildcards '*')
-    header("Access-Control-Allow-Origin: http://localhost:5173");
+    header("Access-Control-Allow-Origin: http://localhost:5174");
 
     // 3. ALLOW CREDENTIALS (This allows the PHPSESSID cookie)
     header("Access-Control-Allow-Credentials: true");

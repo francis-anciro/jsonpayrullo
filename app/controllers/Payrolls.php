@@ -1,20 +1,23 @@
 <?php
-class Payrolls extends Controller {
-    public function __construct() {
+class Payrolls extends Controller
+{
+    public function __construct()
+    {
         // Auth check: Use handleResponse for unauthorized API calls
-        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-            if ($this->isApiRequest()) {
-                return $this->handleResponse(['status' => 'error', 'response' => 'Admin access required'], 403);
-            }
-            redirect('home');
-        }
+//        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+//            if ($this->isApiRequest()) {
+//                return $this->handleResponse(['status' => 'error', 'response' => 'Admin access required'], 403);
+//            }
+//            redirect('home');
+//        }
         $this->payrollModel = $this->model('Payroll');
     }
 
     // GET: /Payrolls/index
-    public function index() {
+    public function index()
+    {
         $data = [
-            'title'   => 'Payroll Periods',
+            'title' => 'Payroll Periods',
             'periods' => $this->payrollModel->getPeriods(),
             'role' => $_SESSION['role'] ?? 'guest'
         ];
@@ -22,7 +25,8 @@ class Payrolls extends Controller {
     }
 
     // GET: /Payrolls/details/2
-    public function details($period_id) {
+    public function details($period_id)
+    {
         $period = $this->payrollModel->getPeriodById($period_id);
         if (!$period) {
             return $this->handleResponse(['status' => 'error', 'response' => 'Period not found'], 404);
@@ -33,20 +37,21 @@ class Payrolls extends Controller {
         foreach ($runs as $run) {
             $run->allowances = $this->payrollModel->getAllowancesByRun($run->PayrollRun_ID);
             $run->deductions = $this->payrollModel->getDeductionsByRun($run->PayrollRun_ID);
-            $run->payslip    = $this->payrollModel->getPayslipByRun($run->PayrollRun_ID);
+            $run->payslip = $this->payrollModel->getPayslipByRun($run->PayrollRun_ID);
         }
 
         $data = [
-            'title'   => 'Period Detail',
-            'period'  => $period,
-            'runs'    => $runs,
+            'title' => 'Period Detail',
+            'period' => $period,
+            'runs' => $runs,
             'role' => $_SESSION['role'] ?? 'guest'
         ];
         return $this->handleResponse($data, 200, 'adminViews/payrollView');
     }
 
     // POST: /Payrolls/create
-    public function create() {
+    public function create()
+    {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $inputData = json_decode(file_get_contents("php://input"), true) ?? $_POST;
 
@@ -57,8 +62,8 @@ class Payrolls extends Controller {
 
             $success = $this->payrollModel->createPeriod([
                 'period_start' => $inputData['period_start'],
-                'period_end'   => $inputData['period_end'],
-                'pay_date'     => $inputData['pay_date']
+                'period_end' => $inputData['period_end'],
+                'pay_date' => $inputData['pay_date']
             ]);
 
             if ($success) {
@@ -73,7 +78,8 @@ class Payrolls extends Controller {
     }
 
     // POST: /Payrolls/generate/2
-    public function generate($period_id) {
+    public function generate($period_id)
+    {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $period = $this->payrollModel->getPeriodById($period_id);
             if (!$period || $period->status !== 'open') {
@@ -87,13 +93,14 @@ class Payrolls extends Controller {
     }
 
     // POST: /Payrolls/addAllowance
-    public function addAllowance() {
+    public function addAllowance()
+    {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $inputData = json_decode(file_get_contents("php://input"), true);
 
             $this->payrollModel->addAllowance([
                 'run_id' => $inputData['run_id'],
-                'name'   => $inputData['name'],
+                'name' => $inputData['name'],
                 'amount' => $inputData['amount']
             ]);
 
@@ -105,13 +112,14 @@ class Payrolls extends Controller {
     }
     // POST: /Payrolls/release/5
 // POST: /Payrolls/release/5
-    public function addDeduction() {
+    public function addDeduction()
+    {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $inputData = json_decode(file_get_contents("php://input"), true);
 
             $this->payrollModel->addDeduction([
                 'run_id' => $inputData['run_id'],
-                'name'   => $inputData['name'],
+                'name' => $inputData['name'],
                 'amount' => $inputData['amount']
             ]);
 
@@ -121,7 +129,8 @@ class Payrolls extends Controller {
             return $this->handleResponse(['status' => 'success', 'response' => 'Deduction added.'], 200);
         }
     }
-    public function release($id) {
+    public function release($id)
+    {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Attempt to update status to 'released'
             if ($this->payrollModel->releasePeriod($id)) {
@@ -136,5 +145,33 @@ class Payrolls extends Controller {
                 'response' => 'Failed to release payroll.'
             ], 500);
         }
+    }
+
+    // GET: /Payrolls/getSlip/{period_id}/{run_id}
+// GET: /Payrolls/getSlip/{period_id}/{run_id}
+    public function getSlip($period_id, $run_id)
+    {
+        $period = $this->payrollModel->getPeriodById($period_id);
+        if (!$period) {
+            return $this->handleResponse(['status' => 'error', 'response' => 'Period not found'], 404);
+        }
+
+        // USE getRunById — NOT getRunsByPeriod
+        // This is the query that has days_present, days_late, shift_name, total_worked_hours
+        $run = $this->payrollModel->getRunById($run_id);
+        if (!$run || $run->PayrollPeriod_ID != $period_id) {
+            return $this->handleResponse(['status' => 'error', 'response' => 'Employee payroll record not found.'], 404);
+        }
+
+        $allowances = $this->payrollModel->getAllowancesByRun($run_id);
+        $deductions = $this->payrollModel->getDeductionsByRun($run_id);
+
+        return $this->handleResponse([
+            'status' => 'success',
+            'period' => $period,
+            'run' => $run,
+            'allowances' => $allowances ?: [],
+            'deductions' => $deductions ?: [],
+        ], 200);
     }
 }

@@ -116,26 +116,26 @@ class User{
         return $this->db->single();
     }
 
-    public function updateFullEmployee($data) {
-        // 13 placeholders now
-        $this->db->query("CALL sp_UpdateEmployee(
-        :code, :username, :email, :password, :role, :fname, :lname, 
-        :phone, :address, :dept, :pos, :salary, :shift
-    )");
+    public function updateEmployee($data) {
+        // The query string must match the 14 parameters in the stored procedure
+        $this->db->query("CALL sp_UpdateEmployee(:code, :user, :email, :pass, :role, :fname, :lname, :phone, :addr, :dept, :pos, :salary, :shift, :admin)");
 
-        $this->db->bind(':code', $data['employee_code']);
-        $this->db->bind(':username', $data['username']);
-        $this->db->bind(':email', $data['email']);
-        $this->db->bind(':password', $data['password']); // BIND THE HASHED PASSWORD
-        $this->db->bind(':role', $data['role']);
-        $this->db->bind(':fname', $data['first_name']);
-        $this->db->bind(':lname', $data['last_name']);
-        $this->db->bind(':phone', $data['phone']);
-        $this->db->bind(':address', $data['address']);
-        $this->db->bind(':dept', $data['department_id']);
-        $this->db->bind(':pos', $data['position_id']);
+        // Bind all 14 parameters
+        $this->db->bind(':code',   $data['employee_code']);
+        $this->db->bind(':user',   $data['username']);
+        $this->db->bind(':email',  $data['email']);
+        // Handle password: bind null if empty so COALESCE in SQL works
+        $this->db->bind(':pass',   !empty($data['password']) ? password_hash($data['password'], PASSWORD_DEFAULT) : null);
+        $this->db->bind(':role',   $data['role']);
+        $this->db->bind(':fname',  $data['first_name']);
+        $this->db->bind(':lname',  $data['last_name']);
+        $this->db->bind(':phone',  $data['phone']);
+        $this->db->bind(':addr',   $data['address']);
+        $this->db->bind(':dept',   $data['department_id']);
+        $this->db->bind(':pos',    $data['position_id']);
         $this->db->bind(':salary', $data['basic_salary']);
-        $this->db->bind(':shift', $data['shift_id']);
+        $this->db->bind(':shift',  $data['shift_id']);
+        $this->db->bind(':admin',  $data['admin_id']); // The 14th parameter
 
         return $this->db->execute();
     }
@@ -146,4 +146,28 @@ class User{
         $this->db->bind(':status', $status);
         return $this->db->execute();
     }
+public function updateContactDetails($data) {
+    $this->db->query("CALL sp_UpdateContactDetails(:emp_id, :phone)");
+    $this->db->bind(':emp_id', $data['employee_id']);
+    $this->db->bind(':phone',  $data['phone']);
+    return $this->db->execute();
+}
+    public function getEditLogs($employee_id) {
+        $this->db->query("
+        SELECT
+            l.Log_ID,
+            l.field_name,
+            l.old_value,
+            l.new_value,
+            l.changed_at,
+            CONCAT(e.first_name, ' ', e.last_name) AS changed_by_name
+        FROM employee_edit_logs l
+        JOIN employees e ON l.changed_by = e.Employee_ID
+        WHERE l.Employee_ID = :emp_id
+        ORDER BY l.changed_at DESC
+    ");
+        $this->db->bind(':emp_id', $employee_id);
+        return $this->db->resultSet();
+    }
+
 }

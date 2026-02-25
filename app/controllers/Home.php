@@ -5,24 +5,69 @@ class Home extends Controller
     {
         $this->userModel = $this->model('User');
         $this->attendanceModel = $this->model('Attendance'); // for attendance
+
+        // BULLETPROOFING: Safely try to load the Payroll model
+        try {
+            $this->payrollModel = $this->model('Payroll');
+        } catch (Throwable $e) {
+            $this->payrollModel = null;
+        }
     }
 
     public function index()
     {
-        // Use the correct case for your Session ID
         if ($this->isApiRequest() && !isset($_SESSION['User_ID']) && !isset($_SESSION['User_id'])) {
             return $this->handleResponse(['status' => 'error', 'response' => 'Unauthorized'], 401);
         }
 
         $employeeId = $_SESSION['Employee_ID'] ?? null;
-        $attendanceHistory = $employeeId ? $this->attendanceModel->getAttendanceHistory($employeeId) : [];
 
-        // --- SAFETY CHECK ---
-        $deptName = "ERROR"; // Default fallback
-        if ($employeeId) {
-            $deptData = $this->userModel->getDepartmentByEmployeeId($employeeId);
-            // Ensure $deptData is an array and NOT false before accessing the key
-            $deptName = $deptData->name ?? $deptData['name'] ?? "ERROR";
+        // --- SAFE ATTENDANCE FETCH ---
+        $attendanceHistory = [];
+        try {
+            if ($employeeId && method_exists($this->attendanceModel, 'getAttendanceHistory')) {
+                $attendanceHistory = $this->attendanceModel->getAttendanceHistory($employeeId) ?: [];
+            }
+        } catch (Throwable $e) {
+        }
+
+        // --- SAFE DEPT FETCH (Fixed to fallback to null) ---
+        $deptName = null; // Default to null so Frontend can show "GENERAL DEPT"
+        try {
+            if ($employeeId && method_exists($this->userModel, 'getDepartmentByEmployeeId')) {
+                $deptData = $this->userModel->getDepartmentByEmployeeId($employeeId);
+                // Handle both object and array returns safely
+                if (is_object($deptData)) {
+                    $deptName = $deptData->name ?? null;
+                } elseif (is_array($deptData)) {
+                    $deptName = $deptData['name'] ?? null;
+                }
+            }
+        } catch (Throwable $e) {
+            // If fetching fails, stay null.
+        }
+
+        // --- SAFE PAYSLIPS FETCH ---
+        $myPayslips = [];
+        try {
+            if ($employeeId && $this->payrollModel && method_exists($this->payrollModel, 'getRunsByEmployee')) {
+                $rawRuns = $this->payrollModel->getRunsByEmployee($employeeId);
+
+                if ($rawRuns) {
+                    foreach ($rawRuns as $run) {
+                        $start = isset($run->period_start) ? date('M j', strtotime($run->period_start)) : '';
+                        $end = isset($run->period_end) ? date('M j, Y', strtotime($run->period_end)) : '';
+
+                        $myPayslips[] = [
+                            'period_string' => "$start - $end",
+                            'net_pay' => $run->net_pay ?? 0,
+                            'period_id' => $run->PayrollPeriod_ID ?? '',
+                            'run_id' => $run->PayrollRun_ID ?? ''
+                        ];
+                    }
+                }
+            }
+        } catch (Throwable $e) {
         }
 
         $data = [
@@ -31,20 +76,20 @@ class Home extends Controller
             'role' => $_SESSION['role'] ?? '---',
             'employee_id' => $employeeId,
             'attendanceHistory' => $attendanceHistory,
-            'dept' => $deptName,
+            'phone' => $_SESSION['phone'] ?? null,
+            'dept' => $deptName, // Sends null if not found, allowing React fallback
+            'myPayslips' => $myPayslips
         ];
 
         return $this->handleResponse($data, 200, 'home');
     }
-// attendance, i added this here instead of creating an attendance
-//controller bc the tap in and tap out is in the home and not in jsonpayrullo/attendance
+
     public function tapIn()
     {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $employeeId = $_SESSION['Employee_ID'] ?? null;
 
             if (!$employeeId) {
-                // Passing 'home' as the 3rd arg just in case it falls back to a view
                 return $this->handleResponse(['status' => 'error', 'response' => 'Session expired'], 401, 'home');
             }
 
@@ -57,6 +102,61 @@ class Home extends Controller
             }
 
             return $this->handleResponse($msg, 200, 'home');
+        }
+    }
+
+    public function updatePhone()
+    {
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $employeeId = $_SESSION['Employee_ID'] ?? null;
+
+            if (!$employeeId) {
+                return $this->handleResponse([
+                    'status' => 'error',
+                    'response' => 'Session expired.'
+                ], 401, 'home');
+            }
+
+            if ($this->isApiRequest()) {
+                $input = json_decode(file_get_contents('php://input'), true);
+            } else {
+                $input = $_POST;
+            }
+
+            if (empty($input['phone'])) {
+                return $this->handleResponse([
+                    'status' => 'error',
+                    'response' => 'Phone number is required.'
+                ], 400, 'home');
+            }
+
+            if (!preg_match('/^[0-9+\-\s]{7,20}$/', $input['phone'])) {
+                return $this->handleResponse([
+                    'status' => 'error',
+                    'response' => 'Invalid phone number format.'
+                ], 400, 'home');
+            }
+
+            try {
+                $this->userModel->updateContactDetails([
+                    'employee_id' => $employeeId,
+                    'phone' => trim($input['phone']),
+                ]);
+
+                // Update session phone to match
+                $_SESSION['phone'] = trim($input['phone']);
+
+                return $this->handleResponse([
+                    'status' => 'success',
+                    'response' => 'Phone number updated successfully.'
+                ], 200, 'home');
+
+            } catch (PDOException $e) {
+                return $this->handleResponse([
+                    'status' => 'error',
+                    'response' => 'Update failed. Please try again.'
+                ], 400, 'home');
+            }
         }
     }
 
@@ -79,9 +179,4 @@ class Home extends Controller
             return $this->handleResponse($msg, 200, 'home');
         }
     }
-
-
 }
-
-
-?>

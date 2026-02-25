@@ -1,15 +1,26 @@
-# Requirements:
-## Database: <a href="#">Find database here</a>
-## React Vite Front end: <a href="#">Download front end here</a>
+# Requirements
 
-# SETUP
-## 1. Download zip file
-## 2. Extract
-## 3. Put into xampp/htdocs/
-## 4. Turn on Apache and MySQL in XAMPP
-   
-# NOTE
-## Check the port number on url of vite 
-## Ex: http://localhost:5173 <- THis one
-## If not 5173, change the header in app/public/index.php
-## header("Access-Control-Allow-Origin: http://localhost:5173" <- Replace the port number with the actual port number
+- **Database:** <a href="#">Download Database here</a>
+- **React Vite Frontend:** <a href="#">Download front end here</a>
+
+---
+
+# Setup
+
+1. Download the ZIP file.
+2. Extract the files.
+3. Move the folder into `xampp/htdocs/`.
+4. Start **Apache** and **MySQL** in XAMPP.
+
+---
+
+# Note
+
+- Check the port number shown in your Vite URL.  
+  Example:
+  
+- If the port is not `5173`, update this line in app/public/index.php to match port number
+
+Change:
+```php
+header("Access-Control-Allow-Origin: http://localhost:<--YOUR PORT NUMBER HERE-->");

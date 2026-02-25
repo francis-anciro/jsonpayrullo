@@ -2,12 +2,12 @@
 class Payrolls extends Controller {
     public function __construct() {
         // Auth check: Use handleResponse for unauthorized API calls
-//        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-//            if ($this->isApiRequest()) {
-//                return $this->handleResponse(['status' => 'error', 'response' => 'Admin access required'], 403);
-//            }
-//            redirect('home');
-//        }
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            if ($this->isApiRequest()) {
+                return $this->handleResponse(['status' => 'error', 'response' => 'Admin access required'], 403);
+            }
+            redirect('home');
+        }
         $this->payrollModel = $this->model('Payroll');
     }
 

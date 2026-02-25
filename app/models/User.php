@@ -35,6 +35,17 @@ class User{
         $this->db->bind(':User_id', $User_id);
         return $this->db->single();
     }
+//    used in home to get department
+    public function getDepartmentByEmployeeId($employeeId) {
+        $this->db->query("
+        SELECT d.name 
+        FROM departments d
+        JOIN employees e ON d.Department_ID = e.Department_ID
+        WHERE e.Employee_ID = :emp_id
+    ");
+        $this->db->bind(':emp_id', $employeeId);
+        return $this->db->single();
+    }
     public function insertUser($data){
         $data['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
         $this->db->query("CALL insertUser(:username, :email,:password, :role )");
@@ -51,21 +62,19 @@ class User{
         $row = $this->db->single();
         return $row->total;
     }
-    public function insertFullEmployee($data) {
-        // DO NOT hash again here; it's already hashed in the controller
-        $this->db->query("CALL sp_InsertNewEmployee(
-        :username, :email, :password_hash, :role,
-        :employee_code, :first_name, :middle_name, :last_name,
-        :phone, :address, :birthdate, :hire_date,
-        :employment_type, :department_id, :position_id, :basic_salary,
-        :shift_id, :leave_type_id, :allocated_days
-    )");
+    public function registerEmployee($data) {
+        $this->db->query('CALL sp_InsertNewEmployee(
+        :username, :email, :password, :role, :code, 
+        :first_name, :middle_name, :last_name, :phone, :address, 
+        :birthdate, :hire_date, :employment_type, :dept_id, 
+        :pos_id, :salary, :shift_id
+    )');
 
         $this->db->bind(':username', $data['username']);
         $this->db->bind(':email', $data['email']);
-        $this->db->bind(':password_hash', $data['password']); // Already hashed
+        $this->db->bind(':password', $data['password']); // Hashed in controller
         $this->db->bind(':role', $data['role']);
-        $this->db->bind(':employee_code', $data['employee_code']);
+        $this->db->bind(':code', $data['employee_code']);
         $this->db->bind(':first_name', $data['first_name']);
         $this->db->bind(':middle_name', $data['middle_name']);
         $this->db->bind(':last_name', $data['last_name']);
@@ -73,15 +82,18 @@ class User{
         $this->db->bind(':address', $data['address']);
         $this->db->bind(':birthdate', $data['birthdate']);
         $this->db->bind(':hire_date', $data['hire_date']);
-        $this->db->bind(':employment_type', $data['employment_type']); // Match controller key
-        $this->db->bind(':department_id', $data['department_id']);
-        $this->db->bind(':position_id', $data['position_id']);
-        $this->db->bind(':basic_salary', $data['basic_salary']);
+        $this->db->bind(':employment_type', $data['employment_type']);
+        $this->db->bind(':dept_id', $data['department_id']);
+        $this->db->bind(':pos_id', $data['position_id']);
+        $this->db->bind(':salary', $data['basic_salary']);
         $this->db->bind(':shift_id', $data['shift_id']);
-        $this->db->bind(':leave_type_id', $data['leave_type_id']);
-        $this->db->bind(':allocated_days', $data['allocated_days']);
 
-        return $this->db->execute();
+        try {
+            return $this->db->execute();
+        } catch (PDOException $e) {
+            // Captures the 'This department already has a manager' signal
+            return $e->getMessage();
+        }
     }
     public function resignEmployee($code) {
         $this->db->query('CALL sp_ResignEmployee(:code)');
@@ -104,15 +116,16 @@ class User{
     }
 
     public function updateFullEmployee($data) {
-        // 12 placeholders to match the updated sp_UpdateEmployee
+        // 13 placeholders now
         $this->db->query("CALL sp_UpdateEmployee(
-        :code, :username, :email, :role, :fname, :lname, 
+        :code, :username, :email, :password, :role, :fname, :lname, 
         :phone, :address, :dept, :pos, :salary, :shift
     )");
 
         $this->db->bind(':code', $data['employee_code']);
-        $this->db->bind(':username', $data['username']); // RESTORED
+        $this->db->bind(':username', $data['username']);
         $this->db->bind(':email', $data['email']);
+        $this->db->bind(':password', $data['password']); // BIND THE HASHED PASSWORD
         $this->db->bind(':role', $data['role']);
         $this->db->bind(':fname', $data['first_name']);
         $this->db->bind(':lname', $data['last_name']);

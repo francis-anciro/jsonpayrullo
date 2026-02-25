@@ -59,7 +59,8 @@ class Login extends Controller {
                     'user' => [
                         'id' => $user->User_ID,
                         'username' => $user->username,
-                        'employee_id' => $user->Employee_ID
+                        'employee_id' => $user->Employee_ID,
+                        'role' => $user->role,
                     ]
                 ]);
             }

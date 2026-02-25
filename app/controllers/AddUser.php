@@ -18,80 +18,41 @@ class AddUser extends Controller {
     }
 
     public function addUser() {
-        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $inputData = json_decode(file_get_contents("php://input"), true) ?? $_POST;
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $input = json_decode(file_get_contents("php://input"), true);
 
-            $deptId = $inputData['Department_id'] ?? $inputData['department_id'] ?? null;
+            // 1. Generate the code
+            $input['employee_code'] = $this->generateEmployeeCode($input['department_id']);
 
-            if (!$deptId) {
-                return $this->handleResponse(['status' => 'error', 'response' => 'Department ID is required'], 400);
-            }
+            // 2. Hash and OVERWRITE the original 'password' key
+            $input['password'] = password_hash($input['password'], PASSWORD_DEFAULT);
 
-            $employeeCode = $this->generateEmployeeCode($deptId);
-            $leaveTypeId = $inputData['leave_type_id'] ?? 1;
-            $allocatedDays = $this->getLeaveAllocationByType($leaveTypeId);
+            // Call the model method
+            $result = $this->userModel->registerEmployee($input);
 
-            $data = [
-                'username'        => trim($inputData['username'] ?? ''),
-                'email'           => trim($inputData['email'] ?? ''),
-                'password'        => password_hash($inputData['password'] ?? 'default123', PASSWORD_DEFAULT),
-                'role'            => $inputData['role'] ?? 'employee',
-                'employee_code'   => $employeeCode,
-                'first_name'      => trim($inputData['first_name'] ?? ''),
-                'middle_name'     => trim($inputData['middle_name'] ?? ''),
-                'last_name'       => trim($inputData['last_name'] ?? ''),
-                'phone'           => trim($inputData['phone'] ?? ''),
-                'address'         => trim($inputData['address'] ?? ''),
-                'birthdate'       => $inputData['birthdate'] ?? null,
-                'hire_date'       => $inputData['hire_date'] ?? date('Y-m-d'),
-                // FIXED: Map to 'employment_type' to match User.php model
-                'employment_type' => $inputData['employment_type'] ?? $inputData['employment_status'] ?? 'Full-time',
-                'department_id'   => $deptId,
-                'position_id'     => $inputData['position_id'] ?? null,
-                'basic_salary'    => $inputData['basic_salary'] ?? 0,
-                'shift_id'        => $inputData['shift_id'] ?? 1,
-                'leave_type_id'   => $leaveTypeId,
-                'allocated_days'  => $allocatedDays
-            ];
-
-            try {
-                if ($this->userModel->insertFullEmployee($data)) {
-                    return $this->handleResponse([
-                        'status' => 'success',
-                        'response' => 'Employee added successfully',
-                        'employee_code' => $employeeCode
-                    ], 201);
-                }
-            } catch (PDOException $e) {
-                $errorMsg = "A system error occurred.";
-                if ($e->getCode() == '45000') {
-                    $errorMsg = "DB Error: " . $e->getMessage();
-                } else if ($e->getCode() == '23000') {
-                    $errorMsg = "Salary must be between 15,000 and 500,000.";
-                }
-
-                return $this->handleResponse(['status' => 'error', 'response' => $errorMsg], 400);
+            if ($result === true) {
+                return $this->handleResponse(['status' => 'success', 'response' => 'Employee registered.'], 201);
+            } else {
+                return $this->handleResponse(['status' => 'error', 'response' => $result], 400);
             }
         }
     }
     private function generateEmployeeCode($deptId): string
     {
-//        This is a helper function to generate the employee code
-//        Format DEPTCODE-YEAR-EMPLOYEEID
         $year = date('Y');
         $employeeCountInDept = $this->userModel->getUserCountByDept($deptId);
         $employeeCount = (1000 + $employeeCountInDept) + 1;
         switch ($deptId){
-            case '1':
+            case '1001':
                 $deptCode = "CREAPRO";
                 break;
-            case '2':
+            case '1002':
                 $deptCode = "CONTSOC";
                 break;
-            case '3':
+            case '1003':
                 $deptCode = "ACCCLIE";
                 break;
-            case '4':
+            case '1004':
                 $deptCode = "OPETECH";
                 break;
             default:

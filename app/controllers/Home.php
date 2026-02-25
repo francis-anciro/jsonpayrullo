@@ -7,30 +7,37 @@ class Home extends Controller
         $this->attendanceModel = $this->model('Attendance'); // for attendance
     }
 
-    public function index() {
-        // 1. Check Auth (For API, you'd usually check a Token, but we'll use Session for now)
-        if ($this->isApiRequest() && !isset($_SESSION['User_id'])) {
+    public function index()
+    {
+        // Use the correct case for your Session ID
+        if ($this->isApiRequest() && !isset($_SESSION['User_ID']) && !isset($_SESSION['User_id'])) {
             return $this->handleResponse(['status' => 'error', 'response' => 'Unauthorized'], 401);
         }
 
         $employeeId = $_SESSION['Employee_ID'] ?? null;
         $attendanceHistory = $employeeId ? $this->attendanceModel->getAttendanceHistory($employeeId) : [];
 
+        // --- SAFETY CHECK ---
+        $deptName = "ERROR"; // Default fallback
+        if ($employeeId) {
+            $deptData = $this->userModel->getDepartmentByEmployeeId($employeeId);
+            // Ensure $deptData is an array and NOT false before accessing the key
+            $deptName = $deptData->name ?? $deptData['name'] ?? "ERROR";
+        }
+
         $data = [
             'title' => 'Home',
             'username' => $_SESSION['username'] ?? 'Guest',
-            'role' => $_SESSION['role'] ?? null,
+            'role' => $_SESSION['role'] ?? '---',
             'employee_id' => $employeeId,
-            'attendanceHistory' => $attendanceHistory
+            'attendanceHistory' => $attendanceHistory,
+            'dept' => $deptName,
         ];
 
-        // 2. Return JSON for React, or View for PHP
         return $this->handleResponse($data, 200, 'home');
     }
-
 // attendance, i added this here instead of creating an attendance
 //controller bc the tap in and tap out is in the home and not in jsonpayrullo/attendance
-
     public function tapIn()
     {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -72,8 +79,9 @@ class Home extends Controller
             return $this->handleResponse($msg, 200, 'home');
         }
     }
-}
 
+
+}
 
 
 ?>

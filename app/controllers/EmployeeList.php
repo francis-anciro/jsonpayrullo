@@ -4,14 +4,14 @@ class EmployeeList extends Controller {
         // CORS and OPTIONS are handled in public/index.php
 
         // Dual-compatible Admin check
-//        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-//            if ($this->isApiRequest()) {
-//                $this->sendJson(['status' => 'error', 'response' => 'Unauthorized: Admin access required'], 403);
-//            } else {
-//                redirect('home');
-//                exit();
-//            }
-//        }
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            if ($this->isApiRequest()) {
+                $this->sendJson(['status' => 'error', 'response' => 'Unauthorized: Admin access required'], 403);
+            } else {
+                redirect('home');
+                exit();
+            }
+        }
         $this->attendanceModel = $this->model('Attendance'); // for attendance
         $this->userModel = $this->model('User');
     }
@@ -72,10 +72,10 @@ class EmployeeList extends Controller {
 
     public function getDeptName($deptId): string{
         switch ($deptId){
-            case '1': return "Creative & Production";
-            case '2': return "Content & Social Media";
-            case '3': return "Accounts & Client Services";
-            case '4': return "Operations & Technology";
+            case '1001': return "Creative & Production";
+            case '1002': return "Content & Social Media";
+            case '1003': return "Accounts & Client Services";
+            case '1004': return "Operations & Technology";
             default: return "ERROR";
         }
     }

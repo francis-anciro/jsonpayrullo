@@ -1,41 +1,41 @@
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/Login';
 import Navbar from './components/Navbar';
 import Home from './components/Home';
-import EmployeeList from './components/EmployeeList'; 
-import AddEmployee from './components/AddEmployee';   
-import EditEmployee from './components/EditEmployee'; 
+import EmployeeList from './components/EmployeeList';
+import AddEmployee from './components/AddEmployee';
+import EditEmployee from './components/EditEmployee';
 import Attendance from './components/Attendance';
-import Payroll from './components/Payroll';             
-import PeriodDetail from './components/PeriodDetail';   
+import Payroll from './components/Payroll';
+import PeriodDetail from './components/PeriodDetail';
 import Analytics from './components/Analytics';
-import Footer from './components/Footer'; 
+import Footer from './components/Footer';
+import PayslipView from './pages/PayslipView';
 
-// Placeholder for Page 3
-const Payslip = () => <div className="text-white p-8">Payslip Document View</div>;
-import { Navigate } from 'react-router-dom';
+// 1. IMPORT THE NEW HISTORY COMPONENT
+import EmployeeHistory from './components/EmployeeHistory';
 
+// Auth Guard
 const ProtectedRoute = ({ children }) => {
-  const isAuthenticated = localStorage.getItem('user');
-
-  if (!isAuthenticated) {
+  const user = localStorage.getItem('user');
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
-
   return children;
 };
+
 function App() {
   return (
       <Router>
         <Routes>
-          {/* Public Route */}
           <Route path="/login" element={<Login />} />
 
-          {/* Protected Routes */}
           <Route path="/*" element={
             <ProtectedRoute>
               <div className="flex flex-col min-h-screen bg-[#0a0a0a] relative">
+
                 <Navbar />
+
                 <main className="flex-grow">
                   <Routes>
                     <Route path="/" element={<Home />} />
@@ -43,13 +43,24 @@ function App() {
                     <Route path="/employees/add" element={<AddEmployee />} />
                     <Route path="/employees/edit/:id" element={<EditEmployee />} />
                     <Route path="/employees/attendance/:id" element={<Attendance />} />
+
+                    {/* 2. ADD THE MISSING HISTORY ROUTE */}
+                    <Route path="/employees/history/:code" element={<EmployeeHistory />} />
+
+                    {/* --- PAYROLL ROUTES --- */}
                     <Route path="/payroll" element={<Payroll />} />
                     <Route path="/payroll/:id" element={<PeriodDetail />} />
-                    <Route path="/payroll/payslip/:periodId/:empId" element={<Payslip />} />
+
+                    {/* --- ANALYTICS ROUTE --- */}
                     <Route path="/analytics" element={<Analytics />} />
+
+                    {/* --- REAL PAYSLIP ROUTE --- */}
+                    <Route path="/payroll/payslip/:periodId/:runId" element={<PayslipView />}/>
                   </Routes>
                 </main>
+
                 <Footer />
+
               </div>
             </ProtectedRoute>
           } />

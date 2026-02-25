@@ -34,6 +34,31 @@ const SelectField = ({ label, name, options, value, onChange }) => (
     </div>
 );
 
+// NEW: Position mapping logic matching your AddUser controller
+const POSITIONS_BY_DEPT = {
+  '1001': [
+    { label: 'Art Director', value: '1001' },
+    { label: 'Graphic Designer', value: '1002' },
+    { label: 'Video Editor', value: '1003' },
+    { label: 'Copywriter', value: '1004' }
+  ],
+  '1002': [
+    { label: 'Social Media Manager', value: '1005' },
+    { label: 'Content Strategist', value: '1006' },
+    { label: 'Community Manager', value: '1007' }
+  ],
+  '1003': [
+    { label: 'Account Executive', value: '1008' },
+    { label: 'Account Manager', value: '1009' },
+    { label: 'Client Success Specialist', value: '1010' }
+  ],
+  '1004': [
+    { label: 'Web Developer', value: '1011' },
+    { label: 'IT Support Specialist', value: '1012' },
+    { label: 'Operations Manager', value: '1013' }
+  ]
+};
+
 const EditEmployee = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -44,7 +69,7 @@ const EditEmployee = () => {
 
   const [formData, setFormData] = useState({
     employee_code: '',
-    username: '', // Added username to state
+    username: '',
     email: '',
     password: '',
     role: '',
@@ -75,7 +100,7 @@ const EditEmployee = () => {
           const user = result.user;
           setFormData({
             employee_code: user.employee_code,
-            username: user.username, // Mapping username from DB
+            username: user.username,
             email: user.email,
             password: '',
             role: user.role,
@@ -83,10 +108,10 @@ const EditEmployee = () => {
             last_name: user.last_name,
             phone: user.phone,
             address: user.address,
-            department_id: user.Department_ID,
-            position_id: user.Position_ID,
+            department_id: user.Department_ID?.toString(), // Enforce string for mapping
+            position_id: user.Position_ID?.toString(),
             basic_salary: user.basic_salary,
-            shift_id: user.Shift_ID,
+            shift_id: user.Shift_ID?.toString(),
             employment_type: user.employment_type || 'Full-time'
           });
         } else {
@@ -104,8 +129,22 @@ const EditEmployee = () => {
     fetchEmployeeData();
   }, [id, navigate]);
 
+  // UPDATED: Automatically adjust position when department changes
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    if (name === 'department_id') {
+      // Get the first available position for the newly selected department
+      const firstAvailablePosition = POSITIONS_BY_DEPT[value]?.[0]?.value || '';
+
+      setFormData(prev => ({
+        ...prev,
+        department_id: value,
+        position_id: firstAvailablePosition // Auto-update to valid position
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -167,7 +206,6 @@ const EditEmployee = () => {
                 <div className="bg-[#121212]/90 backdrop-blur-sm border border-zinc-800 rounded-[2rem] p-8 shadow-xl flex flex-col gap-6">
                   <h2 className="text-lime-400 font-bold text-sm md:text-base tracking-widest uppercase border-b border-zinc-800 pb-4">Account Access</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Username added to the grid */}
                     <InputField label="Username" name="username" value={formData.username} onChange={handleChange} />
                     <InputField label="Email Address" name="email" value={formData.email} onChange={handleChange} type="email" />
                     <SelectField
@@ -211,22 +249,19 @@ const EditEmployee = () => {
                         value={formData.department_id}
                         onChange={handleChange}
                         options={[
-                          { label: 'Creative & Production', value: '1' },
-                          { label: 'Content & Social Media', value: '2' },
-                          { label: 'Accounts & Client Services', value: '3' },
-                          { label: 'Operations & Tech', value: '4' }
+                          { label: 'Creative & Production', value: '1001' },
+                          { label: 'Content & Social Media', value: '1002' },
+                          { label: 'Accounts & Client Services', value: '1003' },
+                          { label: 'Operations & Tech', value: '1004' }
                         ]}
                     />
+                    {/* UPDATED: Options are now dynamic based on selected department */}
                     <SelectField
                         label="Position"
                         name="position_id"
                         value={formData.position_id}
                         onChange={handleChange}
-                        options={[
-                          { label: 'IT Support Specialist', value: '12' },
-                          { label: 'Web Developer', value: '11' },
-                          { label: 'Art Director', value: '1' }
-                        ]}
+                        options={POSITIONS_BY_DEPT[formData.department_id] || []}
                     />
                     <InputField label="Basic Salary" name="basic_salary" value={formData.basic_salary} onChange={handleChange} type="number" />
                     <SelectField

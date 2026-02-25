@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Settings, Loader2, UserMinus, AlertTriangle, X, FileSearch, ChevronDown, ChevronUp, Calendar, CalendarDays, Users, CalendarClock, CalendarMinus, CalendarCheck } from 'lucide-react';
+import { Search, Plus, Settings, Loader2, UserMinus, AlertTriangle, X, FileSearch, ChevronDown, ChevronUp, Calendar, CalendarDays, Users, CalendarClock, CalendarMinus, CalendarCheck, History } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 // -----------------------------------------------------
@@ -365,7 +365,7 @@ const EmployeeList = () => {
               {isFetchingList ? (
                   <div className="flex flex-col items-center justify-center py-20 gap-4">
                     <Loader2 className="text-emerald-500 animate-spin" size={40} />
-                    <span className="text-zinc-500 font-bold uppercase tracking-widest text-sm">Loading Roster...</span>
+                    <span className="text-zinc-500 font-bold uppercase tracking-widest text-sm">Loading List...</span>
                   </div>
               ) : employees.length === 0 && !isSearching ? (
                   <div className="text-center py-10 text-zinc-500 font-bold uppercase tracking-widest">
@@ -517,9 +517,20 @@ const EmployeeList = () => {
                     <h1 className="text-2xl md:text-3xl font-black text-white tracking-wide uppercase drop-shadow-lg">
                       {employeeToView.first_name} {employeeToView.last_name}
                     </h1>
-                    <p className="text-emerald-500 font-bold text-sm tracking-widest uppercase">
-                      EMPLOYEE CODE: {employeeToView.employee_code}
-                    </p>
+
+                    {/* History Button next to the Code */}
+                    <div className="flex items-center gap-4 mt-1">
+                      <p className="text-emerald-500 font-bold text-sm tracking-widest uppercase">
+                        EMPLOYEE CODE: {employeeToView.employee_code}
+                      </p>
+                      <Link
+                          to={`/employees/history/${employeeToView.employee_code}`}
+                          className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 font-bold uppercase tracking-widest bg-blue-500/10 px-3 py-1 rounded-lg border border-blue-500/30 hover:border-blue-400 shadow-inner transition-all"
+                      >
+                        <History size={14} /> View Edit History
+                      </Link>
+                    </div>
+
                   </div>
                   <button onClick={closeViewModal} className="text-zinc-500 hover:text-white transition-colors bg-zinc-900 p-2 rounded-full">
                     <X size={24} />

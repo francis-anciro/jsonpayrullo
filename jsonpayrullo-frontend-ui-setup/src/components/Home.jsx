@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, User, Briefcase, Building2, CircleCheck, CircleMinus, CalendarClock, LayoutDashboard, Loader2 } from 'lucide-react';
+import { Clock, User, Briefcase, Building2, CircleCheck, CircleMinus, CalendarClock, LayoutDashboard, Loader2, Phone, Pencil, X, FileText } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Home = () => {
   const [isMounted, setIsMounted] = useState(false);
@@ -9,8 +10,15 @@ const Home = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
+  // --- PHONE UPDATE STATES ---
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [newPhone, setNewPhone] = useState("");
+  const [isUpdatingPhone, setIsUpdatingPhone] = useState(false);
+
+  // --- NEW: PAYSLIP MODAL STATE ---
+  const [showPayslipModal, setShowPayslipModal] = useState(false);
+
   useEffect(() => {
-    setIsMounted(true);
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     fetchDashboardData();
     return () => clearInterval(timer);
@@ -28,6 +36,7 @@ const Home = () => {
       console.error("Failed to fetch dashboard data:", err);
     } finally {
       setIsLoading(false);
+      setTimeout(() => setIsMounted(true), 50);
     }
   };
 
@@ -52,8 +61,40 @@ const Home = () => {
     }
   };
 
+  // --- PHONE UPDATE HANDLER ---
+  const handlePhoneUpdate = async (e) => {
+    e.preventDefault();
+    setIsUpdatingPhone(true);
+
+    try {
+      const response = await fetch('http://localhost/JSONPayrullo/public/home/updatePhone', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ phone: newPhone })
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.status === 'success') {
+        setData(prev => ({ ...prev, phone: newPhone }));
+        setShowPhoneModal(false);
+      } else {
+        alert(result.response || "Failed to update phone number");
+      }
+    } catch (error) {
+      console.error("Phone update error:", error);
+      alert("Network error. Please check your connection.");
+    } finally {
+      setIsUpdatingPhone(false);
+    }
+  };
+
   const getInitials = (name) => {
-    if (!name || name === "Guest" || name === "Loading...") return "??";
+    if (!name || name === "Loading...") return "??";
     return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
   };
 
@@ -74,10 +115,8 @@ const Home = () => {
     );
   }
 
-  // --- DATA MAPPING ---
-  const username = data?.username || "Guest";
+  const username = data?.username || "Loading...";
   const role = data?.role || "---";
-  const dept = data?.dept || "GENERAL DEPT";
   const attendanceHistory = data?.attendanceHistory || [];
 
   const isTimedIn = attendanceHistory.some(record => isShiftActive(record.time_out));
@@ -106,7 +145,7 @@ const Home = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-            {/* LEFT COLUMN: Avatar & Action Button */}
+            {/* LEFT COLUMN: Avatar, Action Button*/}
             <div className="flex flex-col gap-5 lg:col-span-1">
               <div className="bg-gradient-to-b from-[#121212]/90 to-[#0a0a0a]/90 backdrop-blur-xl border border-zinc-800/80 rounded-[2rem] p-6 flex items-center justify-center relative overflow-hidden group">
                 <div className={`w-32 h-32 md:w-40 md:h-40 rounded-[1.5rem] bg-gradient-to-br from-[#5bb4d8] to-blue-600 flex items-center justify-center shadow-2xl relative z-10 transition-all duration-500 ${isTimedIn ? 'ring-4 ring-green-500 ring-offset-4 ring-offset-[#0a0a0a] shadow-[0_0_40px_rgba(34,197,94,0.3)]' : 'border border-blue-400/30'}`}>
@@ -128,6 +167,36 @@ const Home = () => {
                 >
                   {actionLoading ? 'PROCESSING...' : (isTimedIn ? 'TIME OUT' : 'TIME IN')}
                 </button>
+
+                {/*PHONE NUMBER*/}
+                <div className="w-full mt-5 pt-5 border-t border-zinc-800/80 flex flex-col items-center gap-2">
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Contact Number</span>
+                  <div className="flex items-center justify-center gap-3 bg-zinc-900/40 border border-zinc-800/80 shadow-inner rounded-xl px-4 py-2.5 w-full">
+                    <Phone className="text-teal-500" size={14} />
+                    <span className="text-blue-400 font-bold text-sm tracking-widest">
+                      {data?.phone || 'NO RECORD'}
+                    </span>
+                    <button
+                        onClick={() => {
+                          setNewPhone(data?.phone || '');
+                          setShowPhoneModal(true);
+                        }}
+                        className="text-zinc-500 hover:text-teal-400 transition-colors ml-auto"
+                        title="Edit Phone Number"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* --- NEW: MY PAYSLIPS BUTTON --- */}
+                <button
+                    onClick={() => setShowPayslipModal(true)}
+                    className="w-full mt-4 py-3 rounded-xl font-bold tracking-widest text-xs uppercase bg-violet-500/10 border border-violet-500/30 text-violet-400 hover:bg-violet-600 hover:text-white hover:border-violet-500 hover:shadow-[0_0_15px_rgba(139,92,246,0.3)] transition-all flex items-center justify-center gap-2"
+                >
+                  <FileText size={16} /> View My Payslips
+                </button>
+
               </div>
             </div>
 
@@ -157,8 +226,7 @@ const Home = () => {
                   </div>
                   <div className="flex items-center gap-3">
                     <Building2 className="text-zinc-500" size={20} />
-                    {/* Fixed to use the dept variable */}
-                    <p className="text-zinc-400 font-bold text-base md:text-lg tracking-widest uppercase">{dept}</p>
+                    <p className="text-zinc-400 font-bold text-base md:text-lg tracking-widest uppercase">{data?.dept || 'GENERAL DEPT'}</p>
                   </div>
                 </div>
               </div>
@@ -170,6 +238,7 @@ const Home = () => {
                   <h2 className="text-[11px] md:text-xs font-black text-zinc-300 uppercase tracking-[0.15em]">Recent Attendance</h2>
                 </div>
 
+                {/* UPDATED: 5-Column Grid Header */}
                 <div className="grid grid-cols-5 gap-2 md:gap-4 px-3 py-3 mb-3 bg-zinc-900/40 border border-zinc-800/80 rounded-xl text-[10px] font-black text-zinc-300 uppercase tracking-[0.15em] items-center">
                   <span className="pl-2">Date</span>
                   <span>Time In</span>
@@ -180,16 +249,23 @@ const Home = () => {
 
                 <div className="flex flex-col gap-2.5">
                   {attendanceHistory.length > 0 ? attendanceHistory.map((record, idx) => (
+                      /* UPDATED: 5-Column Grid Row */
                       <div key={idx} className="group grid grid-cols-5 gap-2 md:gap-4 items-center bg-[#121212] border border-zinc-800/80 hover:border-blue-500/50 hover:-translate-y-1 transition-all duration-300 rounded-xl p-3 relative text-xs">
+
                         <div className={`absolute left-0 top-0 bottom-0 w-1 ${!isShiftActive(record.time_out) ? 'bg-green-500' : 'bg-yellow-500'} opacity-20 group-hover:opacity-100`}></div>
+
                         <div className="flex items-center gap-2.5 pl-2">
                           <span className="font-black text-white tracking-wider truncate">{record.attendance_date}</span>
                         </div>
+
                         <span className="text-zinc-300 font-medium truncate">{record.time_in}</span>
                         <span className="text-zinc-300 font-medium truncate">{isShiftActive(record.time_out) ? '--:--' : record.time_out}</span>
+
+                        {/* Display Worked Hours */}
                         <span className="text-zinc-300 font-bold truncate text-blue-400">
                           {!isShiftActive(record.time_out) && record.worked_hours ? `${Number(record.worked_hours).toFixed(2)}` : '--'}
                         </span>
+
                         <div className="flex items-center">
                           <span className={`px-2.5 py-1 rounded-md text-[9px] font-black tracking-[0.1em] uppercase border ${getStatusStyle(record)}`}>
                             {!isShiftActive(record.time_out) ? 'COMPLETE' : 'ACTIVE'}
@@ -204,8 +280,88 @@ const Home = () => {
             </div>
           </div>
         </div>
+
+        {/* --- PHONE EDIT MODAL --- */}
+        {showPhoneModal && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setShowPhoneModal(false)}></div>
+              <div className="relative w-full max-w-sm bg-[#121212] border border-zinc-800 rounded-[2rem] p-8 shadow-2xl animate-in zoom-in-95 fade-in duration-300">
+                <button onClick={() => setShowPhoneModal(false)} className="absolute top-6 right-6 text-zinc-500 hover:text-white transition-colors">
+                  <X size={20} />
+                </button>
+
+                <h2 className="text-xl font-black text-white uppercase tracking-wider mb-6 flex items-center gap-3">
+                  <Phone className="text-teal-500" /> Update Phone
+                </h2>
+
+                <form onSubmit={handlePhoneUpdate} className="flex flex-col gap-5">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-zinc-400 tracking-wider uppercase">Phone Number</label>
+                    <input
+                        type="text"
+                        required
+                        placeholder="e.g. 09123456789"
+                        className="w-full px-4 py-3 bg-[#0a0a0a] border border-zinc-800 rounded-xl focus:border-teal-500 outline-none text-white placeholder-zinc-700"
+                        value={newPhone}
+                        onChange={(e) => setNewPhone(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex gap-3 mt-4">
+                    <button type="button" onClick={() => setShowPhoneModal(false)} className="flex-1 py-3.5 rounded-xl font-bold tracking-widest text-xs uppercase bg-zinc-800 text-zinc-300 hover:bg-zinc-700">Cancel</button>
+                    <button type="submit" disabled={isUpdatingPhone} className="flex-1 py-3.5 rounded-xl font-bold tracking-widest text-xs uppercase bg-teal-600 text-white hover:bg-teal-500">
+                      {isUpdatingPhone ? <Loader2 size={16} className="animate-spin mx-auto" /> : 'Save'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+        )}
+
+        {/* --- MY PAYSLIPS MODAL --- */}
+        {showPayslipModal && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setShowPayslipModal(false)}></div>
+              <div className="relative w-full max-w-lg bg-[#121212] border border-zinc-800 rounded-[2rem] p-8 shadow-2xl animate-in zoom-in-95 fade-in duration-300">
+                <button onClick={() => setShowPayslipModal(false)} className="absolute top-6 right-6 text-zinc-500 hover:text-white transition-colors">
+                  <X size={20} />
+                </button>
+
+                <h2 className="text-xl font-black text-white uppercase tracking-wider mb-6 flex items-center gap-3">
+                  <FileText className="text-violet-500" /> My Payslips
+                </h2>
+
+                <div className="flex flex-col gap-3 max-h-[60vh] overflow-y-auto pr-2 scrollbar-hide">
+                  {/* Check if backend sent payslips, otherwise show mock/empty */}
+                  {data?.myPayslips && data.myPayslips.length > 0 ? (
+                      data.myPayslips.map((slip, idx) => (
+                          <div key={idx} className="flex items-center justify-between bg-[#0a0a0a] border border-zinc-800/80 hover:border-violet-500/50 transition-all rounded-xl p-4">
+                            <div className="flex flex-col">
+                              <span className="text-white font-bold text-sm tracking-wide">{slip.period_string}</span>
+                              <span className="text-zinc-500 text-xs font-medium uppercase tracking-widest mt-1">Net Pay: <span className="text-green-400 font-bold">₱{Number(slip.net_pay).toLocaleString()}</span></span>
+                            </div>
+
+                            {/* UPDATED LINK: Now passes the 'from' state */}
+                            <Link
+                                to={`/payroll/payslip/${slip.period_id}/${slip.run_id}`}
+                                state={{ from: 'dashboard' }}
+                                className="px-4 py-2 bg-violet-600/10 text-violet-400 hover:bg-violet-600 hover:text-white border border-violet-500/30 hover:border-violet-500 rounded-lg text-xs font-black uppercase tracking-widest transition-all"
+                            >
+                              View
+                            </Link>
+                          </div>
+                      ))
+                  ) : (
+                      <div className="text-center py-8 text-zinc-500 font-bold uppercase tracking-widest text-xs border border-zinc-800/50 border-dashed rounded-xl">
+                        No payslips available yet.
+                      </div>
+                  )}
+                </div>
+              </div>
+            </div>
+        )}
+
       </div>
   );
 };
-
 export default Home;

@@ -1,5 +1,5 @@
 <?php
-
+// MODEL FOR ANALYTICS TO RETRIEVE DATA FOR ANALYTICS TAB
 class Analytic {
     private $db;
 

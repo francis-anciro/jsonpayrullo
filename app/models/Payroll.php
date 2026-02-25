@@ -67,7 +67,6 @@ class Payroll
         return $row->missing;
     }
 
-    // ── RUNS ─────────────────────────────────────────────
 
     public function generate($periodId, $adminId)
     {
@@ -139,8 +138,6 @@ class Payroll
         return $this->db->execute();
     }
 
-    // ── ALLOWANCES ───────────────────────────────────────
-
     public function getAllowancesByRun($run_id)
     {
         $this->db->query("SELECT * FROM payroll_allowances WHERE PayrollRun_ID = :run_id");
@@ -166,8 +163,6 @@ class Payroll
         $this->db->bind(':id', $id);
         return $this->db->execute();
     }
-
-    // ── DEDUCTIONS ───────────────────────────────────────
 
     public function getDeductionsByRun($run_id)
     {
@@ -195,8 +190,6 @@ class Payroll
         return $this->db->execute();
     }
 
-    // ── PAYSLIPS ─────────────────────────────────────────
-
     public function getPayslipByRun($run_id)
     {
         $this->db->query("SELECT * FROM payslips WHERE PayrollRun_ID = :run_id");
@@ -211,7 +204,6 @@ class Payroll
         return $this->db->execute();
     }
 
-    // --- NEW: Added for the My Payslips Dashboard Modal ---
     public function getRunsByEmployee($employeeId)
     {
         $this->db->query("

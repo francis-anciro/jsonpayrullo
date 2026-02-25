@@ -2,29 +2,23 @@
 class EmployeeList extends Controller {
     public function __construct(){
 
-//        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-//            if ($this->isApiRequest()) {
-//                $this->sendJson(['status' => 'error', 'response' => 'Unauthorized: Admin access required'], 403);
-//            } else {
-//                redirect('home');
-//                exit();
-//            }
-//        }
-        $this->attendanceModel = $this->model('Attendance'); // for attendance
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            if ($this->isApiRequest()) {
+                $this->sendJson(['status' => 'error', 'response' => 'Unauthorized: Admin access required'], 403);
+            } else {
+                redirect('home');
+                exit();
+            }
+        }
+        $this->attendanceModel = $this->model('Attendance');
         $this->userModel = $this->model('User');
     }
 
     public function index() {
-        // 1. Fetch all users using your updated query (with phone, dates, etc.)
         $users = $this->userModel->getUsers();
 
-        // 2. Loop and attach supplemental data
         foreach ($users as $user) {
-            // Attach Department Name
             $user->department_name = $this->getDeptName($user->Department_ID);
-
-            // Fetch FULL attendance history using your existing model method
-            // This replaces the broken $attendanceHistory variable
             $user->attendance_history = $this->attendanceModel->getAttendanceHistory($user->Employee_ID);
         }
 
@@ -35,7 +29,6 @@ class EmployeeList extends Controller {
             'current_user_id' => $_SESSION['User_id'] ?? null
         ];
 
-        // Returns JSON if the React 'Accept' header is present
         return $this->handleResponse($data, 200, 'adminViews/employeeList');
     }
 
@@ -43,12 +36,10 @@ class EmployeeList extends Controller {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $inputData = json_decode(file_get_contents("php://input"), true) ?? $_POST;
 
-            // Hash password before sending to model as per your model comment
             if (!empty($inputData['password'])) {
                 $inputData['password'] = password_hash($inputData['password'], PASSWORD_DEFAULT);
             }
 
-            // Call the correct method name found in your User.php
             if ($this->userModel->insertFullEmployee($inputData)) {
                 if ($this->isApiRequest()) {
                     return $this->handleResponse(['status' => 'success', 'response' => 'Employee added successfully'], 201);
@@ -80,7 +71,6 @@ class EmployeeList extends Controller {
 
     public function delete($code) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'DELETE') {
-            // Pass the employee_code (e.g., OPETECH-2026-1002) to the model
             if ($this->userModel->resignEmployee($code)) {
                 return $this->handleResponse([
                     'status' => 'success',
@@ -107,12 +97,11 @@ class EmployeeList extends Controller {
             return $this->handleResponse(['status' => 'error', 'response' => 'Update failed.'], 400);
         }
     }
-    public function history($code = null) {
+     public function history($code = null) {
         if (!$code) {
             return $this->handleResponse(['status' => 'error', 'response' => 'Employee code required'], 400);
         }
 
-        // Get Employee_ID from code
         $employee = $this->userModel->getUserByCode($code);
 
         if (!$employee) {
@@ -126,5 +115,4 @@ class EmployeeList extends Controller {
             'data'   => $logs
         ], 200, 'employeeList');
     }
-
 }

@@ -27,18 +27,14 @@ class Controller{
         exit;
     }
 
-// app/core/Controller.php
 
-// Change the function definition to this:
     public function handleResponse($data, $status, $view = null) {
         if ($this->isApiRequest()) {
             $this->sendJson($data, $status);
         } else {
-            // If it's a browser and we have a view, show it
             if ($view) {
                 $this->view($view, $data);
             } else {
-                // Fallback for browser if no view is provided
                 $this->sendJson($data, $status);
             }
         }

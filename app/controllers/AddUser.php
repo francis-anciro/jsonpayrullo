@@ -13,7 +13,6 @@ class AddUser extends Controller {
 
     public function index() {
         $data = ['title' => 'Register New Employee'];
-        // handleResponse allows React to get the title/meta info if needed as JSON
         return $this->handleResponse($data, 200, 'adminViews/addUser');
     }
 
@@ -21,13 +20,10 @@ class AddUser extends Controller {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $input = json_decode(file_get_contents("php://input"), true);
 
-            // 1. Generate the code
             $input['employee_code'] = $this->generateEmployeeCode($input['department_id']);
 
-            // 2. Hash and OVERWRITE the original 'password' key
             $input['password'] = password_hash($input['password'], PASSWORD_DEFAULT);
 
-            // Call the model method
             $result = $this->userModel->registerEmployee($input);
 
             if ($result === true) {
@@ -37,6 +33,8 @@ class AddUser extends Controller {
             }
         }
     }
+
+//    HELPER SO THE EMPLOYEE CODE ISNT MANUALLY ENETERED WHEN CREATING EMPLOYEE ACCOUNT
     private function generateEmployeeCode($deptId): string
     {
         $year = date('Y');

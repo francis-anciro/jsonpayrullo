@@ -1,13 +1,14 @@
 <?php
 class Analytics extends Controller {
+//    CONTROLLER FOR THE ANALYTICS TAB
     public function __construct() {
-//        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-//            if ($this->isApiRequest()) {
-//                return $this->handleResponse(['status' => 'error', 'response' => 'Admin access required'], 403);
-//            }
-//            redirect('home');
-//            exit();
-//        }
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            if ($this->isApiRequest()) {
+                return $this->handleResponse(['status' => 'error', 'response' => 'Admin access required'], 403);
+            }
+            redirect('home');
+            exit();
+        }
         $this->analytic = $this->model('Analytic');
     }
 
@@ -53,19 +54,15 @@ class Analytics extends Controller {
     }
 
     public function getEmployeeCountByDepartment() {
-        // 1. Get both name and ID from the model
         $departments = $this->analytic->getDepartmentNames();
         $stats = [];
 
         foreach ($departments as $dept) {
-            // 2. Extract both values (handling the object return)
             $id = $dept->department_id;
             $name = $dept->name;
 
-            // 3. Pass the ID to the query for the count
             $count = $this->analytic->getEmployeeCountByDepartment($id);
 
-            // 4. Return the result using the name as the key
             $stats[] = [
                 'department' => $name,
                 'count'      => $count

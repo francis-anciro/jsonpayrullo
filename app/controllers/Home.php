@@ -6,7 +6,6 @@ class Home extends Controller
         $this->userModel = $this->model('User');
         $this->attendanceModel = $this->model('Attendance'); // for attendance
 
-        // BULLETPROOFING: Safely try to load the Payroll model
         try {
             $this->payrollModel = $this->model('Payroll');
         } catch (Throwable $e) {
@@ -22,7 +21,6 @@ class Home extends Controller
 
         $employeeId = $_SESSION['Employee_ID'] ?? null;
 
-        // --- SAFE ATTENDANCE FETCH ---
         $attendanceHistory = [];
         try {
             if ($employeeId && method_exists($this->attendanceModel, 'getAttendanceHistory')) {
@@ -31,8 +29,7 @@ class Home extends Controller
         } catch (Throwable $e) {
         }
 
-        // --- SAFE DEPT FETCH (Fixed to fallback to null) ---
-        $deptName = null; // Default to null so Frontend can show "GENERAL DEPT"
+        $deptName = null;
         try {
             if ($employeeId && method_exists($this->userModel, 'getDepartmentByEmployeeId')) {
                 $deptData = $this->userModel->getDepartmentByEmployeeId($employeeId);
@@ -44,10 +41,8 @@ class Home extends Controller
                 }
             }
         } catch (Throwable $e) {
-            // If fetching fails, stay null.
         }
 
-        // --- SAFE PAYSLIPS FETCH ---
         $myPayslips = [];
         try {
             if ($employeeId && $this->payrollModel && method_exists($this->payrollModel, 'getRunsByEmployee')) {
@@ -77,7 +72,7 @@ class Home extends Controller
             'employee_id' => $employeeId,
             'attendanceHistory' => $attendanceHistory,
             'phone' => $_SESSION['phone'] ?? null,
-            'dept' => $deptName, // Sends null if not found, allowing React fallback
+            'dept' => $deptName,
             'myPayslips' => $myPayslips
         ];
 
@@ -143,7 +138,6 @@ class Home extends Controller
                     'phone' => trim($input['phone']),
                 ]);
 
-                // Update session phone to match
                 $_SESSION['phone'] = trim($input['phone']);
 
                 return $this->handleResponse([

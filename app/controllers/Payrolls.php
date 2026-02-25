@@ -1,15 +1,16 @@
 <?php
 class Payrolls extends Controller
+// THIS IS THE PAYROLL CONTROLLER FOR ALL PAYROLL FUNCTIONALITIESD
 {
     public function __construct()
     {
-        // Auth check: Use handleResponse for unauthorized API calls
-//        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-//            if ($this->isApiRequest()) {
-//                return $this->handleResponse(['status' => 'error', 'response' => 'Admin access required'], 403);
-//            }
-//            redirect('home');
-//        }
+        // CHECK IF LOGGED IN AND ADMIN
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            if ($this->isApiRequest()) {
+                return $this->handleResponse(['status' => 'error', 'response' => 'Admin access required'], 403);
+            }
+            redirect('home');
+        }
         $this->payrollModel = $this->model('Payroll');
     }
 
@@ -24,7 +25,6 @@ class Payrolls extends Controller
         return $this->handleResponse($data, 200, 'adminViews/payrollIndex');
     }
 
-    // GET: /Payrolls/details/2
     public function details($period_id)
     {
         $period = $this->payrollModel->getPeriodById($period_id);
@@ -49,7 +49,6 @@ class Payrolls extends Controller
         return $this->handleResponse($data, 200, 'adminViews/payrollView');
     }
 
-    // POST: /Payrolls/create
     public function create()
     {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -70,14 +69,11 @@ class Payrolls extends Controller
                 return $this->handleResponse(['status' => 'success', 'response' => 'Created'], 201);
             }
 
-            // Fallback if success fails
             return $this->handleResponse(['status' => 'error', 'response' => 'Failed to create period'], 500);
         }
-        // Fallback for wrong request method
         return $this->handleResponse(['status' => 'error', 'response' => 'Invalid Request'], 400);
     }
 
-    // POST: /Payrolls/generate/2
     public function generate($period_id)
     {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -92,7 +88,6 @@ class Payrolls extends Controller
         }
     }
 
-    // POST: /Payrolls/addAllowance
     public function addAllowance()
     {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -110,8 +105,7 @@ class Payrolls extends Controller
             return $this->handleResponse(['status' => 'success', 'response' => 'Allowance added.'], 200);
         }
     }
-    // POST: /Payrolls/release/5
-// POST: /Payrolls/release/5
+
     public function addDeduction()
     {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -123,7 +117,6 @@ class Payrolls extends Controller
                 'amount' => $inputData['amount']
             ]);
 
-            // Recalculate Gross/Net in DB
             $this->payrollModel->syncTotals($inputData['run_id']);
 
             return $this->handleResponse(['status' => 'success', 'response' => 'Deduction added.'], 200);
@@ -147,8 +140,7 @@ class Payrolls extends Controller
         }
     }
 
-    // GET: /Payrolls/getSlip/{period_id}/{run_id}
-// GET: /Payrolls/getSlip/{period_id}/{run_id}
+
     public function getSlip($period_id, $run_id)
     {
         $period = $this->payrollModel->getPeriodById($period_id);
@@ -156,8 +148,6 @@ class Payrolls extends Controller
             return $this->handleResponse(['status' => 'error', 'response' => 'Period not found'], 404);
         }
 
-        // USE getRunById — NOT getRunsByPeriod
-        // This is the query that has days_present, days_late, shift_name, total_worked_hours
         $run = $this->payrollModel->getRunById($run_id);
         if (!$run || $run->PayrollPeriod_ID != $period_id) {
             return $this->handleResponse(['status' => 'error', 'response' => 'Employee payroll record not found.'], 404);

@@ -11,7 +11,6 @@ class Attendance {
         $this->db->bind(':id', $employeeID);
         return $this->db->execute();
     }
-
     public function tapOut($employeeID) {
         $this->db->query("CALL employeeTapOut(:id)");
         $this->db->bind(':id', $employeeID);

@@ -62,7 +62,7 @@ const AddEmployee = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-  const [departments, setDepartments] = useState([]); // Dynamic departments state
+  const [departments, setDepartments] = useState([]);
 
   const [formData, setFormData] = useState({
     username: '',
@@ -85,7 +85,7 @@ const AddEmployee = () => {
 
   useEffect(() => {
     setIsMounted(true);
-    fetchDepartments(); // Fetch departments on mount
+    fetchDepartments();
   }, []);
 
   // --- NEW: Fetch Department Names from DB ---

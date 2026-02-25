@@ -44,9 +44,6 @@ const EmployeeList = () => {
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [isFetchingAttendance, setIsFetchingAttendance] = useState(false);
 
-  // -----------------------------------------------------
-  // FETCH DATA ON MOUNT
-  // -----------------------------------------------------
   useEffect(() => {
     setIsMounted(true);
     fetchEmployees();
@@ -98,9 +95,6 @@ const EmployeeList = () => {
     }
   };
 
-  // -----------------------------------------------------
-  // UPGRADED SEARCH & FILTER LOGIC
-  // -----------------------------------------------------
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       setIsSearching(true);
@@ -136,9 +130,6 @@ const EmployeeList = () => {
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery, statusFilter, masterEmployees]);
 
-  // -----------------------------------------------------
-  // HANDLERS
-  // -----------------------------------------------------
 
   const toggleLeaveStatus = async (emp) => {
     setIsMarkingLeave(emp.id);
@@ -648,13 +639,6 @@ const EmployeeList = () => {
                                     </div>
 
                                     <div className="pt-6 mt-6 border-t border-zinc-800/80 flex justify-end">
-                                      <Link
-                                          to={`/employees/attendance/${employeeToView.id}`}
-                                          className="flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/30 hover:border-indigo-500 hover:bg-indigo-500 hover:text-white hover:shadow-[0_0_15px_rgba(99,102,241,0.3)] transition-all rounded-xl px-5 py-3 text-indigo-400 group/btn"
-                                      >
-                                        <CalendarDays size={18} />
-                                        <span className="text-xs font-black tracking-widest uppercase">View Full History</span>
-                                      </Link>
                                     </div>
 
                                   </div>

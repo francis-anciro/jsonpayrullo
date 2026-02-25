@@ -5,7 +5,6 @@ import Home from './components/Home';
 import EmployeeList from './components/EmployeeList';
 import AddEmployee from './components/AddEmployee';
 import EditEmployee from './components/EditEmployee';
-import Attendance from './components/Attendance';
 import Payroll from './components/Payroll';
 import PeriodDetail from './components/PeriodDetail';
 import Analytics from './components/Analytics';
@@ -42,7 +41,6 @@ function App() {
                     <Route path="/employees" element={<EmployeeList />} />
                     <Route path="/employees/add" element={<AddEmployee />} />
                     <Route path="/employees/edit/:id" element={<EditEmployee />} />
-                    <Route path="/employees/attendance/:id" element={<Attendance />} />
 
                     {/* 2. ADD THE MISSING HISTORY ROUTE */}
                     <Route path="/employees/history/:code" element={<EmployeeHistory />} />

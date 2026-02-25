@@ -20,14 +20,14 @@ const EmployeeList = () => {
   // -----------------------------------------------------
   const [isMounted, setIsMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all'); // NEW: Status filter state
+  const [statusFilter, setStatusFilter] = useState('all');
   const [isSearching, setIsSearching] = useState(false);
   const [isResigning, setIsResigning] = useState(null);
   const [isMarkingLeave, setIsMarkingLeave] = useState(null);
 
   // DATA STATE
-  const [masterEmployees, setMasterEmployees] = useState([]); // Holds original fetched list
-  const [employees, setEmployees] = useState([]); // Holds filtered list
+  const [masterEmployees, setMasterEmployees] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [isFetchingList, setIsFetchingList] = useState(true);
 
   // RESIGN MODAL STATE
@@ -60,13 +60,11 @@ const EmployeeList = () => {
       });
 
       const data = await response.json();
-      console.log("Fetched Data:", data); // Check your console to see the exact structure
+      console.log("Fetched Data:", data);
 
-      // Check if data is the object { users: [...] } or just the array [...]
       const rawUsers = data.users || (Array.isArray(data) ? data : []);
 
       if (rawUsers.length > 0) {
-        // Inside fetchEmployees function in EmployeeList.jsx
         const mappedUsers = rawUsers.map(u => ({
           id: u.User_ID || u.id,
           employee_code: u.employee_code || 'N/A',
@@ -81,8 +79,9 @@ const EmployeeList = () => {
           hiredate: u.hire_date || 'N/A',
           email: u.email || 'N/A',
           username: u.username || 'N/A',
-          status: u.is_active === 1 ? 'present' : 'resigned',
-          basic_salary: u.basic_salary || '0.00', // Ensure this matches the DB key          // CAPTURE THE REAL HISTORY ARRAY HERE
+          // UPDATED: Now maps directly from employment_status (active, on_leave, resigned)
+          status: u.employment_status || 'active',
+          basic_salary: u.basic_salary || '0.00',
           attendance_history: u.attendance_history || []
         }));
 
@@ -111,6 +110,7 @@ const EmployeeList = () => {
       // 1. Apply Status Filter
       if (statusFilter !== 'all') {
         filteredList = filteredList.filter(emp => {
+          // Normalize handles 'on_leave' to 'on-leave' to match filter ID
           const normalizedStatus = emp.status.toLowerCase().replace('_', '-');
           if (statusFilter === 'active') {
             return normalizedStatus === 'present' || normalizedStatus === 'active';
@@ -148,21 +148,19 @@ const EmployeeList = () => {
     const code = emp.employee_code;
 
     try {
-      // 2. Send the real API request
       const response = await fetch(`http://localhost/JSONPayrullo/EmployeeList/toggleLeave/${code}`, {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ status: nextStatus }), // Sending "on_leave" or "active"
+        body: JSON.stringify({ status: nextStatus }),
         credentials: 'include'
       });
 
       const result = await response.json();
 
       if (response.ok && result.status === 'success') {
-        // 3. Update local state to reflect the change immediately
         const updateList = (list) => list.map(e => e.id === emp.id ? { ...e, status: nextStatus } : e);
 
         setMasterEmployees(prev => updateList(prev));
@@ -191,7 +189,7 @@ const EmployeeList = () => {
   const confirmResign = async () => {
     if (!employeeToResign) return;
 
-    const code = employeeToResign.employee_code; // Param for the URL
+    const code = employeeToResign.employee_code;
     setIsResigning(employeeToResign.id);
     setShowResignModal(false);
 
@@ -205,7 +203,6 @@ const EmployeeList = () => {
       const result = await response.json();
 
       if (response.ok && result.status === 'success') {
-        // Update local state to gray out the card (status: 'resigned')
         const updateList = (list) => list.map(emp => emp.employee_code === code ? { ...emp, status: 'resigned' } : emp);
         setMasterEmployees(prev => updateList(prev));
         setEmployees(prev => updateList(prev));
@@ -248,18 +245,16 @@ const EmployeeList = () => {
       return;
     }
 
-    // Find employee in existing state
     const emp = employees.find(e => e.id === empId);
 
     if (emp && emp.attendance_history) {
-      // Slice to 5 and map to the format expected by your JSX
       const formattedRecords = emp.attendance_history.slice(0, 5).map(record => ({
         id: record.Attendance_ID,
-        attendance_date: record.attendance_date, // Match backend key
+        attendance_date: record.attendance_date,
         time_in: record.time_in,
         time_out: record.time_out || '--:--',
-        worked_hours: record.worked_hours, // Captured for display
-        status: record.status // Use the raw status from DB ('late', 'present', etc.)
+        worked_hours: record.worked_hours,
+        status: record.status
       }));
 
       setAttendanceRecords(formattedRecords);
@@ -439,7 +434,6 @@ const EmployeeList = () => {
                               <FileSearch size={20} />
                             </button>
                             <Link
-                                // Change emp.id to emp.employee_code
                                 to={`/employees/edit/${emp.employee_code}`}
                                 className="p-3 text-zinc-400 bg-zinc-800/30 hover:bg-blue-500/10 hover:text-blue-400 hover:shadow-[0_0_15px_rgba(59,130,246,0.2)] border border-zinc-700/50 hover:border-blue-500/50 rounded-xl transition-all flex justify-center items-center"
                                 title="Edit Employee"

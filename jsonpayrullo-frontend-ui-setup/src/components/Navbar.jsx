@@ -7,22 +7,21 @@ const Navbar = () => {
   const navigate = useNavigate();
   const currentPath = location.pathname;
 
-  // 1. Setup state for dynamic user data
+  // 1. Setup state to include role
   const [user, setUser] = useState({
     name: "Loading...",
-    position: "---"
+    position: "---",
+    role: "employee" // Added role default
   });
 
   // 2. Fetch user data from localStorage on component mount
-// 2. Fetch user data from localStorage on component mount
-// Navbar.jsx
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       const parsedUser = JSON.parse(storedUser);
       setUser({
         name: parsedUser.username || "Unknown",
-        // Ensure we check for 'role' specifically if 'position' is missing
+        role: parsedUser.role || "employee" // Safely grab the role from the backend
       });
     }
   }, []);
@@ -32,12 +31,23 @@ const Navbar = () => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
   };
 
-  const navItems = [
+  // 3. The master list of all tabs
+  const allNavItems = [
     { name: 'Home', icon: LayoutDashboard, path: '/' },
     { name: 'Employee List', icon: Users, path: '/employees' },
     { name: 'Payroll', icon: Wallet, path: '/payroll' },
     { name: 'Analytics', icon: BarChart3, path: '/analytics' },
   ];
+
+  // 4. THE IF STATEMENT: Filter based on Admin role
+  let navItems = [];
+  if (user.role && user.role.toLowerCase() === 'admin') {
+    navItems = allNavItems; // Admin sees everything
+  } else {
+    navItems = [
+      { name: 'Home', icon: LayoutDashboard, path: '/' } // Non-admins only see Home
+    ];
+  }
 
   const activeTheme = {
     'Home': { text: 'text-blue-400', border: 'border-blue-500/60', bg: 'bg-blue-500', glow: 'shadow-[0_0_10px_rgba(59,130,246,0.8)]', tabGlow: 'shadow-[0_0_25px_rgba(59,130,246,0.2)]' },
